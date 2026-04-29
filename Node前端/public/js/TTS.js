@@ -11,13 +11,14 @@ class CrossPlatformTTS {
     constructor() {
         this.isPlaying = false;
         this.currentUtterance = null;
+        this.defaultRate = 1;  // 默认语速
     }
     
-    async speak(text, targetLang = 'zh-CN') {
-        // 先彻底停止并清空队列
-        this.forceStop();
+    async speak(text, targetLang = 'zh-CN', rate = null) {
+        // 使用传入的语速，否则用默认值
+        const speechRate = rate !== null ? rate : this.defaultRate;
         
-        // 等待一小段时间确保 cancel 生效
+        this.forceStop();
         await new Promise(resolve => setTimeout(resolve, 50));
         
         const voices = await this.getVoices();
@@ -41,6 +42,9 @@ class CrossPlatformTTS {
         const utterance = new SpeechSynthesisUtterance(text);
         if (selectedVoice) utterance.voice = selectedVoice;
         utterance.lang = targetLang;
+        utterance.rate = speechRate;  // 设置语速
+        utterance.pitch = 1;          // 音调（可选）
+        utterance.volume = 1;         // 音量（可选）
         
         this.currentUtterance = utterance;
         
@@ -51,21 +55,21 @@ class CrossPlatformTTS {
         speechSynthesis.speak(utterance);
     }
     
-    // 强制停止（有效版本）
+    // 设置默认语速
+    setDefaultRate(rate) {
+        // 语速范围：0.1 - 10，推荐 0.5 - 2
+        this.defaultRate = Math.max(0.1, Math.min(10, rate));
+    }
+    
     forceStop() {
-        // 方法1：cancel 停止当前
         speechSynthesis.cancel();
-        
-        // 方法2：某些浏览器需要重新实例化才能彻底清空
         if (this.currentUtterance) {
             try {
-                // 强制结束当前 utterance
                 this.currentUtterance.onend = null;
                 this.currentUtterance.onerror = null;
             } catch(e) {}
             this.currentUtterance = null;
         }
-        
         this.isPlaying = false;
     }
     

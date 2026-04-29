@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智御安澜 智控大坝泄洪系统</title>
+    <script src="/js/apiUtils.js"></script>
     <link rel="stylesheet" href="/css/forecast.css">
     <style>
         /* 进度条css样式 */
@@ -1088,7 +1089,6 @@ document.addEventListener('DOMContentLoaded', initHydroWeather);
         window.location.href='navigation.html';
     });
 </script>
-<script src="/js/apiUtils.js"></script>
 <script src="/js/ajax.js"></script>
 <script src="/js/water_level_rt_data1.js"></script>
 <script src="/js/echarts.js"></script>
@@ -1102,6 +1102,7 @@ document.addEventListener('DOMContentLoaded', initHydroWeather);
         let isOriginal = true;
         let typingInterval;
         let tts = new CrossPlatformTTS();
+        tts.setDefaultRate(1.25);
 
         const fullText = `关于启动洪水黄色预警响应的紧急通知
 各乡（镇）人民政府、市直有关单位：据气象监测，我市即将迎来强降雨，部分区域大概率引发洪水，现已达到洪水黄色预警启动条件，现就紧急防范工作要求如下：
