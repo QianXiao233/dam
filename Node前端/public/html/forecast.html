@@ -1101,6 +1101,7 @@ document.addEventListener('DOMContentLoaded', initHydroWeather);
         const textContainer = document.getElementById('textContainer');
         let isOriginal = true;
         let typingInterval;
+        let tts = new CrossPlatformTTS();
 
         const fullText = `关于启动洪水黄色预警响应的紧急通知
 各乡（镇）人民政府、市直有关单位：据气象监测，我市即将迎来强降雨，部分区域大概率引发洪水，现已达到洪水黄色预警启动条件，现就紧急防范工作要求如下：
@@ -1123,14 +1124,15 @@ document.addEventListener('DOMContentLoaded', initHydroWeather);
                     this.style.display = 'none';
                     textContainer.style.display = 'block';
                     textContainer.innerHTML = '';
-                    const tts = new CrossPlatformTTS();
                     tts.speak(fullText);
                     typeWriter(fullText, 0, textContainer);
+                    tts.speak(fullText);
                 } else {
                     // 显示图片，隐藏文字
                     this.style.display = 'block';
                     textContainer.style.display = 'none';
                     clearTimeout(typingInterval);
+                    tts.stop();
                     textContainer.innerHTML = '';
                 }
                 isOriginal = !isOriginal;
@@ -1145,6 +1147,7 @@ document.addEventListener('DOMContentLoaded', initHydroWeather);
                 clearTimeout(typingInterval);
                 textContainer.innerHTML = '';
                 isOriginal = true;
+                tts.stop();
             });
         }
     });
