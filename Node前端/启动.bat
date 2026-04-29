@@ -1,1 +1,1 @@
-node server.j
+node server.js

@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智御安澜 智控大坝泄洪系统</title>
     <link rel="stylesheet" href="/css/forecast.css">
-    <script src="/js/apiUtils.js"></script>
     <style>
         /* 进度条css样式 */
         #container {
@@ -1054,13 +1053,13 @@ document.addEventListener('DOMContentLoaded', initHydroWeather);
         <!-- 预案详情文字容器 -->
         <div id="textContainer" style="position: absolute; 
             top: 38%;
-            right: 1%; 
-            width: 99%; 
-            height: 48%; 
+            right: 5%; 
+            width: 90%; 
+            height: 47%; 
             color: #ffffff; 
-            font-size: 15px; 
-            line-height: 1.4; 
-            letter-spacing: 0;  
+            font-size: 16px; 
+            line-height: 1.6; 
+            letter-spacing: 0.5;  
             padding: 15px; 
             display: none;
             white-space: pre-wrap; 
@@ -1089,6 +1088,7 @@ document.addEventListener('DOMContentLoaded', initHydroWeather);
         window.location.href='navigation.html';
     });
 </script>
+<script src="/js/apiUtils.js"></script>
 <script src="/js/ajax.js"></script>
 <script src="/js/water_level_rt_data1.js"></script>
 <script src="/js/echarts.js"></script>
@@ -1101,19 +1101,12 @@ document.addEventListener('DOMContentLoaded', initHydroWeather);
         const textContainer = document.getElementById('textContainer');
         let isOriginal = true;
         let typingInterval;
-        let tts = new CrossPlatformTTS();
 
         const fullText = `关于启动洪水黄色预警响应的紧急通知
-各乡(镇)人民政府、市直有关单位:
-根据气象部门监测，未来我市将出现明显降雨过程，部分区域可能发生洪水，已达到洪水黄色预警标准。为切实做好防范应对工作，保障人民群众生命财产安全，现将有关事项通知如下:
-一、立即启动预警响应
-各单位要迅速进入应急状态，严格落实24小时值班和领导带班制度，确保通信畅通、信息及时传递。
-二、强化重点区域防控
-住建部门要对城市低洼地段、地下车库等易积水区域进行排查，提前做好排水设施检修和排水准备。
-三、做好人员转移准备
-各乡镇要组织力量对低洼地带、地质灾害隐患点的群众进行排查，必要时及时组织转移。
-四、加强信息报送工作
-各单位要及时收集、汇总相关信息，按照规定时限向市应急指挥中心报送。`;
+各乡（镇）人民政府、市直有关单位：据气象监测，我市即将迎来强降雨，部分区域大概率引发洪水，现已达到洪水黄色预警启动条件，现就紧急防范工作要求如下：
+即刻启动应急响应：全面进入防汛应急状态，严格执行 24 小时值班及领导带班制度，保障联络通畅、信息高效流转。
+紧盯重点隐患防控：住建部门重点排查城市低洼路段、地下车库等易涝区域，检修排水设备，提前落实排涝举措。
+抓实人员避险准备：各乡镇全面摸排低洼区域、地质灾害隐患点，提前做好群众转移预案，遇险情迅速组织避险撤离。`;
 
         function typeWriter(text, i, element) {
             if (i < text.length) {
@@ -1130,6 +1123,7 @@ document.addEventListener('DOMContentLoaded', initHydroWeather);
                     this.style.display = 'none';
                     textContainer.style.display = 'block';
                     textContainer.innerHTML = '';
+                    const tts = new CrossPlatformTTS();
                     tts.speak(fullText);
                     typeWriter(fullText, 0, textContainer);
                 } else {
@@ -1137,7 +1131,6 @@ document.addEventListener('DOMContentLoaded', initHydroWeather);
                     this.style.display = 'block';
                     textContainer.style.display = 'none';
                     clearTimeout(typingInterval);
-                    tts.stop();
                     textContainer.innerHTML = '';
                 }
                 isOriginal = !isOriginal;
@@ -1151,7 +1144,6 @@ document.addEventListener('DOMContentLoaded', initHydroWeather);
                 textContainer.style.display = 'none';
                 clearTimeout(typingInterval);
                 textContainer.innerHTML = '';
-                tts.stop();
                 isOriginal = true;
             });
         }
