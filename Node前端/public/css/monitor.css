@@ -1,0 +1,502 @@
+@font-face {
+    font-family: "SourceHanSansCN-Medium";
+    src: url(../fonts/SourceHanSansCN-Medium.otf);
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "SourceHanSansCN-Bold";
+    src: url(../fonts/SourceHanSansCN-Bold.otf);
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "SourceHanSansCN-Heavy";
+    src: url(../fonts/SourceHanSansCN-Heavy.otf);
+    font-display: swap;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+#webgl {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    background-image: url('../imagesT/天空01.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    color: #ffffff;
+    overflow: hidden;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.dashboard {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    max-width: 100vw;
+    max-height: 100vh;
+    background-image:
+        url('../images/background2.png'),
+        url('../images/background1.png');
+    background-size: 100% 100%, 100% 100%, cover;
+    background-position: center, center, center;
+    background-repeat: no-repeat, no-repeat, no-repeat;
+    transform-origin: center;
+    overflow: hidden;
+}
+
+.header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background-image: url('../images/header-bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 0 40px;
+    z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 14px;
+    color: #ffffff;
+    font-weight: normal;
+    line-height: 40px;
+}
+
+.header-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: "SourceHanSansCN-Heavy";
+    font-size: 32px;
+    line-height: 80px;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    letter-spacing: 2px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 14px;
+    color: #ffffff;
+    line-height: 40px;
+
+}
+
+.left-panel {
+    position: absolute;
+    left: 50px;
+    top: 60px;
+    width: calc(25% - 60px);
+    height: calc(1080px - 80px);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: none;
+    position: relative;
+}
+
+.panel-header::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background-image: url('../images/subtitle_bottom.png');
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+}
+
+.panel-icon {
+    position: relative;
+    top: 40%;
+    width: 20px;
+    height: 20px;
+    background-image: url('../images/subtitle_logo.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.panel-title {
+    position: relative;
+    left: 10%;
+    top: 20%;
+    font-size: 14px;
+    /* font-weight: bold; */
+    color: #ffffff;
+}
+
+.panel-subtitle {
+    position: relative;
+    left: 20%;
+    font-size: 12px;
+    color: #a0c4ff;
+    margin-left: 13%;
+}
+
+.search {
+    position: absolute;
+    top: 3.5%;
+    width: 100%;
+    height: 10%;
+}
+
+input {
+    position: absolute;
+    top: 5%;
+    border-radius: 5px;
+    width: 80%;
+    height: 25px;
+    background-color: #054881;
+    border-color: #a2d2ff;
+    border-width: 1px;
+}
+
+button {
+    color: white;
+    position: absolute;
+    top: 5%;
+    left: 84%;
+    border-radius: 5px;
+    height: 25px;
+    width: 12%;
+    background-color: #2b7abc;
+    border-color: #a2d2ff;
+    border-width: 1px;
+    border-color: #7cccf0;
+}
+
+.panel-header01 {
+    position: absolute;
+    top: 48%;
+    width: 80%;
+    height: 10%;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: none;
+}
+
+.panel-header01::after {
+    content: "";
+    /* 必须添加的属性 */
+    position: absolute;
+    bottom: 30%;
+    /* 改为bottom，使伪元素位于父元素底部 */
+    left: 0%;
+    width: 130%;
+    /* 添加宽度，使伪元素充满父元素 */
+    height: 10px;
+    background-image: url('../images/subtitle_bottom.png');
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+}
+
+.l01 {
+    width: 50%;
+    height: 11%;
+    background-repeat: no-repeat;
+    background-size: cover;
+    z-index: 1;
+
+}
+
+.l02,
+.l03 {
+    width: 50%;
+    height: 11%;
+    background-image: url('../imagesT/矩形内图.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+    z-index: 1;
+}
+
+.l01 {
+    position: absolute;
+    top: 8.5%;
+    left: 42%;
+}
+
+.l02 {
+    position: absolute;
+    top: 22.5%;
+    left: 42%;
+}
+
+.l03 {
+    position: absolute;
+    top: 36.5%;
+    left: 42%;
+}
+
+.l01:hover {
+    background-color: #45a049;
+}
+
+/* =======================================video============================================= */
+#video-container {
+    position: relative;
+    margin-top: 20px;
+    display: none;
+}
+
+#video-frame {
+    border: 3px solid #333;
+    position: relative;
+    left: 140%;
+    width: 640px;
+    height: 360px;
+}
+
+#video-container1 {
+    position: relative;
+    margin-top: 20px;
+    display: none;
+}
+
+#video-frame1 {
+    border: 3px solid #333;
+    position: relative;
+    left: 140%;
+    width: 640px;
+    height: 360px;
+}
+
+#video-player1 {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#video-container2 {
+    position: relative;
+    margin-top: 20px;
+    display: none;
+}
+
+#video-frame2 {
+    border: 3px solid #333;
+    position: relative;
+    left: 140%;
+    width: 640px;
+    height: 360px;
+}
+
+#video-player2 {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* =======================================right============================================= */
+.right-panel {
+    position: absolute;
+    right: 50px;
+    top: 60px;
+    width: calc(25% - 60px);
+    height: calc(1080px - 80px);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.r01 {
+    width: 99%;
+    height: 20%;
+    background-image: url('../imagesT/右.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.rcenter {
+    width: 98%;
+    height: 21%;
+    background-image: url('../imagesT/右.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.rbottom {
+    width: 98%;
+    height: 21%;
+    background-image: url('../imagesT/右.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.panel-header02 {
+    position: absolute;
+    bottom: 0%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: none;
+    position: relative;
+}
+
+.panel-header02::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background-image: url('../images/subtitle_bottom.png');
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+}
+
+.panel-header03 {
+    position: absolute;
+    bottom: 0%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: none;
+    position: relative;
+}
+
+.panel-header03::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background-image: url('../images/subtitle_bottom.png');
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+}
+
+.alert-bar {
+    position: absolute;
+    top: 100px;
+    left: 25%;
+    width: 50%;
+    height: 40px;
+    background: linear-gradient(90deg, rgba(139, 69, 19, 0.1) 0%, rgba(178, 34, 34, 0.5) 50%, rgba(139, 69, 19, 0.1) 100%);
+    border-top: 1px solid;
+    border-bottom: 1px solid;
+    border-image: linear-gradient(90deg, rgba(255, 0, 0, 0.1) 0%, rgba(255, 0, 0, 0.5) 50%, rgba(255, 0, 0, 0.1) 100%) 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 100px;
+    font-size: 18px;
+    font-family: 'Courier New', Courier, monospace;
+    z-index: 99;
+}
+/* 添加弹窗样式 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 20000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background-color: #fff;
+    width: 350px;
+    max-width: 90%;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.modal-icon {
+    font-size: 50px;
+    margin-bottom: 15px;
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.modal-message {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.modal-close-btn {
+    padding: 10px 25px;
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.modal-close-btn:hover {
+    background-color: #0b7dda;
+}
+
+/* 修复卡片按钮位置 */
+.card .action {
+    cursor: pointer;
+}

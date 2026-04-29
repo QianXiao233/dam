@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>智御安澜 · 智慧水利导航</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 30%, #0a1f2e, #030c15);
+            font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #e0f0ff;
+            padding: 0;
+            position: relative;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 网格背景 */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 150, 255, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 150, 255, 0.08) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 顶部导航栏 */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(5, 20, 35, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 170, 255, 0.4);
+            padding: 12px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            font-size: 28px;
+            filter: drop-shadow(0 0 4px #00aaff);
+        }
+
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #ffffff, #88ddff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: rgba(0, 100, 150, 0.4);
+            border: 1px solid #2aaaff;
+            padding: 6px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            color: #e0f0ff;
+        }
+
+        .nav-btn:hover {
+            background: #0077bb;
+            box-shadow: 0 0 8px #00aaff;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 14px;
+            background: rgba(0,0,0,0.4);
+            padding: 5px 15px;
+            border-radius: 30px;
+        }
+
+        .logout-btn {
+            cursor: pointer;
+            color: #ffaa66;
+        }
+        .logout-btn:hover {
+            text-decoration: none;
+        }
+
+        .time-display {
+            font-family: monospace;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        /* 主体容器 */
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 100px 24px 60px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .welcome {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .welcome h1 {
+            font-size: 2.2rem;
+            font-weight: 500;
+            letter-spacing: 2px;
+        }
+        .welcome p {
+            opacity: 0.7;
+            margin-top: 8px;
+        }
+
+        /* 卡片网格 */
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        /* 所有卡片样式统一，无 disabled 特殊样式 */
+        .card {
+            flex: 1;
+            min-width: 260px;
+            max-width: 320px;
+            background: rgba(10, 30, 45, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 32px;
+            border: 1px solid rgba(0, 170, 255, 0.35);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            padding: 28px 20px 32px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.15), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .card:hover::before {
+            left: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: #2aaaff;
+            box-shadow: 0 20px 40px rgba(0, 100, 200, 0.4);
+        }
+
+        .card-icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .card-title {
+            font-size: 1.6rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .card-desc {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            line-height: 1.4;
+            margin-bottom: 20px;
+        }
+        .card-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(0, 120, 200, 0.3);
+            border-radius: 20px;
+            font-size: 0.7rem;
+            border: 1px solid rgba(0, 200, 255, 0.5);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            font-size: 0.8rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 800px) {
+            .top-bar { padding: 8px 16px; flex-wrap: wrap; gap: 10px; }
+            .container { padding-top: 120px; }
+            .card-title { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="logo-area">
+        <span class="logo-icon">🌊</span>
+        <span class="logo-text">智御安澜 · 智慧水利</span>
+    </div>
+    <div class="nav-buttons">
+        <div class="user-info" id="userInfo"></div>
+        <div class="nav-btn logout-btn" id="logoutBtn">🚪 退出</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="welcome">
+        <h1>欢迎使用智慧水利综合平台</h1>
+        <p>请选择您需要进入的系统模块</p>
+    </div>
+    <div class="grid" id="cardGrid"></div>
+    <div class="footer">
+        <span>© 智御安澜 · 数字孪生水利系统 | 安全可靠 · 智慧决策</span>
+    </div>
+</div>
+<script src="/js/apiUtils.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+    let user_info = null;
+    
+    // 卡片定义
+    const cards = [
+        {
+            id: "digital_twin",
+            title: "智慧水利监测系统",
+            icon: "🏭",
+            desc: "大坝概述 · 天气水质 · 震动监测 · 水位趋势",
+            tag: "实时孪生",
+            url: "driver.html"
+        },
+        {
+           
+            id: "monitor",
+            title: "智能溺水监测系统",
+            icon: "🏊‍♂️",
+            desc: "实时监控水域安全 · 智能识别溺水风险",
+            tag: "AI视觉",
+            url: "monitor.html"
+        },
+        {
+            id: "forecast",
+            title: "智控大坝泄洪系统",
+            icon: "⚠️",
+            desc: "预报 · 预警 · 预演 · 预案 | 水位趋势与防洪调度",
+            tag: "防洪核心",
+            url: "forecast.html"
+        }
+    ];
+
+    // 权限映射
+    const rolePermissions = {
+        3: { canAccess: [0] },
+        2: { canAccess: [1] },
+        1: { canAccess: [2] },
+        0: { canAccess: [0, 1, 2] }
+    };
+
+    // 主函数：所有逻辑都在这里
+    (async function() {
+        try {
+            // 获取用户信息
+            user_info = await yanzheng();
+            
+            // 检查登录状态
+            if (!user_info) {
+                alert('请先登录');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            const loggedUser = user_info.username;
+            const level = user_info.level;
+            
+            // 获取当前用户可访问的卡片索引
+            let accessibleIndices = [];
+            if (rolePermissions[level]) {
+                accessibleIndices = rolePermissions[level].canAccess;
+            } else {
+                accessibleIndices = [];
+            }
+            
+            // 显示用户信息及当前时间
+            const userInfoDiv = document.getElementById('userInfo');
+            const updateTime = () => {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+                userInfoDiv.innerHTML = `👤 ${loggedUser} &nbsp;|&nbsp; <span class="time-display">${timeStr}</span>`;
+            };
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            // 生成卡片
+            const grid = document.getElementById('cardGrid');
+            cards.forEach((card, idx) => {
+                const isAllowed = accessibleIndices.includes(idx);
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card';
+                cardDiv.innerHTML = `
+                    <div class="card-icon">${card.icon}</div>
+                    <div class="card-title">${card.title}</div>
+                    <div class="card-desc">${card.desc}</div>
+                    <span class="card-tag">${card.tag}</span>
+                `;
+                cardDiv.addEventListener('click', () => {
+                    if (isAllowed) {
+                        window.location.href=card.url;
+                    } else {
+                        alert('⚠️ 您没有权限访问该系统！请联系管理员。');
+                    }
+                });
+                grid.appendChild(cardDiv);
+            });
+            
+        } catch (error) {
+            console.error('初始化失败:', error);
+            alert('获取用户信息失败，请重新登录');
+            window.location.href = 'index.html';
+        }
+    })();
+
+    // 退出登录（可以放在外面，不依赖user_info）
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        if (confirm('确认退出登录吗？')) {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+    });
+</script>
+</body>
+</html>

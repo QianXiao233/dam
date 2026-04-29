@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <script src="/js/backend_waf.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能溺水监测系统</title>
+    <link rel="stylesheet" href="/css/monitor.css" />
+    <script src="/js/auth.js"></script>
+    <script>
+        let user=yanzheng();
+    </script>
+    <style>
+        /* 进度条css样式 */
+        #container {
+            position: absolute;
+            width: 400px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -200px;
+            margin-top: -8px;
+            border-radius: 8px;
+            border: 1px solid #009999;
+            overflow: hidden;
+            z-index: 25;
+        }
+
+        #per {
+            height: 100%;
+            width: 0px;
+            background: #00ffff;
+            color: #00ffff;
+            line-height: 15px;
+        }
+
+        /* ========== 竖版确认弹窗样式（新增，匹配页面深色科技风） ========== */
+        .modal-confirm-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 20000;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.2s, opacity 0.2s ease;
+        }
+        .modal-confirm-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .confirm-dialog {
+            background: #0f1a2a;
+            width: 360px;
+            border-radius: 16px;
+            text-align: center;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(0, 200, 255, 0.3);
+            border: 1px solid #2c6f9f;
+        }
+        .confirm-title {
+            padding: 24px 20px 8px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #ff6b6b;
+        }
+        .confirm-content {
+            padding: 8px 24px 28px;
+            font-size: 15px;
+            color: #c0d4f0;
+            line-height: 1.5;
+        }
+        .confirm-divider {
+            height: 1px;
+            background: #1e3a5f;
+        }
+        .confirm-btn {
+            width: 100%;
+            padding: 14px;
+            background: #1e6f9f;
+            border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .confirm-btn:hover {
+            background: #2a8bc2;
+        }
+    </style>
+</head>
+<script type="importmap">
+        {
+         "imports": {
+             "three": "/build/three.module.js",
+             "three/addons/": "/jsm/"
+         }
+     }
+    </script>
+<script src="/js/three.js" type="module"></script>
+
+<body>
+    <div id="webgl"></div>
+    <div id="container">
+        <!-- 进度条 -->
+        <div id="per"></div>
+    </div>
+
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <span id="currentTime">2024-08-16 16:25:30</span>
+            </div>
+            <div class="header-title">智御安澜 智能溺水监测系统</div>
+            <div class="header-right">
+                <span>用户名:<span id='user_name'>获取失败</span></span>
+                <span id="return_navigation"><img src="/images/logout.png">返回导航</span>
+            </div>
+        </div>
+
+        <!-- Alert Bar -->
+        <div class="alert-bar">
+            <div class="alert-item">
+                <div class="alert-icon"></div>
+                <span></span>
+            </div>
+            <div class="alert-item">
+                <div class="alert-icon"></div>
+                <span></span>
+            </div>
+        </div>
+
+        <div class="left-panel">
+            <div class="panel-header">
+                <div class="panel-icon"></div>
+                <div class="panel-title">监控列表</div>
+                <div class="panel-subtitle">Monitoring List</div>
+            </div>
+            <div>
+                <form class="search" action="/search" method="GET">
+                    <input type="search" class="search-box" name="q" aria-label="搜索" required>
+                    <button type="submit" class="search-button">搜索</button>
+                </form>
+            </div>
+            <div>
+                <div>
+                    <img src="/imagesT/矩形.png" style="position: absolute;top: 8%;width: 94%;height: 12%;">
+                    <div style="position: absolute;top: 11%;left: 10%;">监控点位-1</div>
+                    <div style="position: absolute;top: 14.5%;left: 6.5%;color: #6db0ef;font-size: 11px;">时间:2025年8月18日
+                    </div>
+                    <div style="position: absolute;top: 16%;left: 12%;color: #6db0ef;font-size: 11px;">15：19 ：00</div>
+                    <img class="l01" id="video_feed_01" src="http://192.168.10.247:5000/video_feed/0"
+                        crossorigin="anonymous"></img>
+
+                    <div id="video-container">
+                        <div id="video-frame">
+                            <img id="video_feed" src="http://192.168.10.247:5000/video_feed/0"
+                                crossorigin="anonymous"></img>
+                        </div>
+                    </div>
+
+                </div>
+                <div>
+                    <img src="/imagesT/矩形.png" style="position: absolute;top: 22%;width: 94%;height: 12%;">
+                    <div style="position: absolute;top: 25%;left: 10%;">监控点位-2</div>
+                    <div style="position: absolute;top: 28.5%;left: 6.5%;color: #6db0ef;font-size: 11px;">时间:2025年8月18日
+                    </div>
+                    <div style="position: absolute;top: 30%;left: 12%;color: #6db0ef;font-size: 11px;">15：19 ：00</div>
+                    <img class="l02" id="video_feed_02" src="http://192.168.10.247:5000/video_feed/1"
+                        crossorigin="anonymous"></img>
+                    <div id="video-container1">
+                        <div id="video-frame">
+                            <img id="video_feed" src="http://192.168.10.247:5000/video_feed/1"
+                                crossorigin="anonymous" ">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <img src="/imagesT/矩形.png" style="position: absolute;top: 36%;width: 94%;height: 12%;">
+                    <div style="position: absolute;top: 39%;left: 10%;">监控点位-3</div>
+                    <div style="position: absolute;top: 42.5%;left: 6.5%;color: #6db0ef;font-size: 11px;">时间:2025年8月18日
+                    </div>
+                    <div style="position: absolute;top: 44%;left: 12%;color: #6db0ef;font-size: 11px;">15：19 ：00</div>
+                    <img class="l03" id="video_feed_03" src="http://192.168.10.251:5000/video_feed/2"
+                        crossorigin="anonymous"></img>
+                    <div id="video-container2">
+                        <div id="video-frame">
+                            <img id="video_feed" src="http://192.168.10.251:5000/video_feed/2"
+                                crossorigin="anonymous""></img>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-header01">
+                <div class="panel-icon"></div>
+                <div class="panel-title">监控分布</div>
+                <div class="panel-subtitle">Monitoring distribution</div>
+            </div>
+            <div>
+                <img src="/imagesT/定位.png" style="width: 95%;height: 25%;position: absolute;top: 56%;">
+            </div>
+        </div>
+
+        <div class="right-panel">
+
+            <div class="panel-header">
+                <div class="panel-icon"></div>
+                <div class="panel-title">机器狗巡检</div>
+                <div class="panel-subtitle">Robot dog inspection</div>
+            </div>
+            <div class="r01"></div>
+
+            <div class="panel-header02">
+                <div class="panel-icon"></div>
+                <div class="panel-title">无人机巡检</div>
+                <div class="panel-subtitle">AUV inspection</div>
+            </div>
+            <div class="r01"></div>
+
+            <div class="panel-header03">
+                <div class="panel-icon"></div>
+                <div class="panel-title">无人船巡检</div>
+                <div class="panel-subtitle">Unmanned ship inspection</div>
+            </div>
+            <div class="r01"></div>
+        </div>
+    </div>
+
+    <!-- ========== 弹窗 HTML 结构（新增） ========== -->
+    <div id="confirmModal" class="modal-confirm-overlay">
+        <div class="confirm-dialog">
+            <div class="confirm-title" id="confirmTitle">⚠️ 警告</div>
+            <div class="confirm-content" id="confirmMessage">确认执行此操作吗？</div>
+            <div class="confirm-divider"></div>
+            <button class="confirm-btn" id="confirmOkBtn">确认</button>
+        </div>
+    </div>
+
+    <script src="/js/ajax.js"></script>
+    <script src="/build/three.js" type="module"></script>
+    <script src="/js/update_time.js"></script>
+</body>
+    <script>
+        // ========== 弹窗 JS 函数（新增） ==========
+        function showConfirmDialog(title, message, onConfirm) {
+            const modal = document.getElementById('confirmModal');
+            const titleEl = document.getElementById('confirmTitle');
+            const msgEl = document.getElementById('confirmMessage');
+            const okBtn = document.getElementById('confirmOkBtn');
+            
+            if (!modal) return;
+            
+            titleEl.innerText = title || '⚠️ 警告';
+            msgEl.innerHTML = message || '确认执行此操作吗？';
+            
+            // 移除旧监听，避免重复绑定
+            const newBtn = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newBtn, okBtn);
+            
+            newBtn.onclick = () => {
+                modal.classList.remove('active');
+                if (typeof onConfirm === 'function') {
+                    onConfirm();
+                }
+            };
+            
+            modal.classList.add('active');
+            
+            // 点击遮罩关闭（不触发回调）
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            };
+        }
+
+        // ========== 原有代码（未改动） ==========
+        user.then(user_info=>{
+            var level_list=[0,3];//仅允许权限0,3访问
+            if(!level_list.includes(user_info.level)){
+                // 已替换为自定义弹窗
+                showConfirmDialog('权限不足', '当前用户权限禁止访问！', function() {
+                    history.back();
+                });
+            }
+            document.getElementById('user_name').textContent=`${user_info.username}`;
+        });
+    document.getElementById('return_navigation').addEventListener("click",function(){
+        window.location.href='navigation.html';
+    });
+    // 点击视频放大的功能
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取所有需要点击放大的视频元素
+        const videoElements = [
+            document.getElementById('video_feed_01'),
+            document.getElementById('video_feed_02'),
+            document.getElementById('video_feed_03'),
+            document.querySelectorAll('#video_feed') // 如果有多个相同ID的元素
+        ];
+        
+        // 创建遮罩层（用于放大显示）
+        function createModalOverlay() {
+            // 检查是否已存在遮罩层
+            let overlay = document.getElementById('videoModalOverlay');
+            if (overlay) {
+                return overlay;
+            }
+            
+            // 创建遮罩层
+            overlay = document.createElement('div');
+            overlay.id = 'videoModalOverlay';
+            overlay.style.cssText = `
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.9);
+                z-index: 10000;
+                cursor: pointer;
+                justify-content: center;
+                align-items: center;
+            `;
+            
+            // 创建放大后的图片容器
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                position: relative;
+                max-width: 90%;
+                max-height: 90%;
+            `;
+            
+            // 创建放大后的图片
+            const modalImg = document.createElement('img');
+            modalImg.id = 'modalImage';
+            modalImg.style.cssText = `
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                border-radius: 10px;
+                box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            `;
+            
+            // 创建关闭按钮
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '✕';
+            closeBtn.style.cssText = `
+                position: absolute;
+                top: -40px;
+                right: -40px;
+                background: white;
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                font-size: 24px;
+                cursor: pointer;
+                color: #333;
+                transition: all 0.3s;
+            `;
+            closeBtn.onmouseover = () => closeBtn.style.background = '#f0f0f0';
+            closeBtn.onmouseout = () => closeBtn.style.background = 'white';
+            
+            modalContent.appendChild(modalImg);
+            modalContent.appendChild(closeBtn);
+            overlay.appendChild(modalContent);
+            
+            // 点击遮罩层关闭
+            overlay.onclick = function(e) {
+                if (e.target === overlay) {
+                    overlay.style.display = 'none';
+                }
+            };
+            
+            // 点击关闭按钮关闭
+            closeBtn.onclick = function() {
+                overlay.style.display = 'none';
+            };
+            
+            document.body.appendChild(overlay);
+            return overlay;
+        }
+        
+        // 为单个视频元素添加点击放大功能
+        function addZoomFunctionality(element) {
+            if (!element) return;
+            
+            element.style.cursor = 'pointer';
+            element.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const overlay = createModalOverlay();
+                const modalImg = document.getElementById('modalImage');
+                
+                // 设置放大显示的图片源
+                modalImg.src = this.src;
+                overlay.style.display = 'flex';
+                
+                // ESC键关闭
+                const escHandler = function(e) {
+                    if (e.key === 'Escape') {
+                        overlay.style.display = 'none';
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                };
+                document.addEventListener('keydown', escHandler);
+            });
+        }
+        
+        // 为所有视频元素添加点击功能
+        // 方式1：通过ID添加
+        const video1 = document.getElementById('video_feed_01');
+        const video2 = document.getElementById('video_feed_02');
+        const video3 = document.getElementById('video_feed_03');
+        
+        addZoomFunctionality(video1);
+        addZoomFunctionality(video2);
+        addZoomFunctionality(video3);
+        
+        // 方式2：为所有 class 为 l01, l02, l03 的元素添加
+        document.querySelectorAll('.l01, .l02, .l03').forEach(img => {
+            addZoomFunctionality(img);
+        });
+        
+        // 方式3：为所有视频相关的图片添加
+        document.querySelectorAll('img[id*="video_feed"]').forEach(img => {
+            addZoomFunctionality(img);
+        });
+        
+        console.log('视频放大功能已启用');
+    });
+</script>
+
+</html>

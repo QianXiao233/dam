@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智御安澜 智慧水利监测系统</title>
+    
+    <!-- ==================== 1. 外部样式 ==================== -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- ==================== 2. 外部脚本（头部引入） ==================== -->
+     <script src="/js/apiUtils.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/echarts.js"></script>
+    <script src="/js/alert-bar-scroll.js"></script>
+    <script src="/js/apiUtils.js"></script>
+    
+    <!-- ==================== 3. 页面内联样式 ==================== -->
+    <style>
+        /* ---- 3.1 加载进度条 ---- */
+        #container { 
+            position: absolute;
+            width: 400px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -200px;
+            margin-top: -8px;
+            border-radius: 8px;
+            border: 1px solid #009999;  
+            overflow: hidden;
+            z-index: 25;
+        } 
+        #per {
+            height: 100%;
+            width: 0px;
+            background: #00ffff;
+            color: #00ffff;
+            line-height: 15px;
+        }
+
+        /* ---- 3.2 头部布局 ---- */
+        .header-left { 
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 14px;
+            color: #ffffff;
+            font-weight: normal;
+            line-height: 40px;
+        }
+        .header-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: "SourceHanSansCN-Heavy";
+            font-size: 32px;
+            line-height: 80px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            letter-spacing: 2px;
+        }
+        .header-right {
+            position: fixed;
+            top: 0px;
+            right: 40px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 14px;
+            color: #ffffff;
+            line-height: 40px;
+            z-index: 999999;
+            background: transparent;     
+            pointer-events: auto;
+        }
+
+        /* ---- 3.3 Three.js 容器 ---- */
+        #webgl {
+            z-index: -1;
+        }
+
+        /* ---- 3.4 右侧面板交互 ---- */
+        .right-panel {
+            pointer-events: auto;
+        }
+        .panel-title.clickable {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .panel-title.clickable:hover {
+            color: #00ffff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+        }
+
+        /* ---- 3.5 模型控制按钮 ---- */
+        /* .model-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        } */
+        /* .control-btn {
+            background: rgba(0, 60, 120, 0.6);
+            border: 1px solid #00aaff;
+            color: #fff;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .control-btn:hover {
+            background: rgba(0, 100, 200, 0.8);
+            box-shadow: 0 0 10px rgba(0, 200, 255, 0.5);
+        } */
+    </style>
+    <script type="importmap">
+        {
+         "imports": {
+             "three": "./build/three.module.js",
+             "three/addons/": "./jsm/"
+         }
+     }
+</script>
+<script src="/js/three.js" type="module"></script>
+    
+    <!-- ==================== 4. 用户验证脚本 ==================== -->
+    <script>
+        let user = yanzheng();
+    </script>
+
+    <style>
+       /* ========= 模态框样式 ========= */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 10, 20, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    visibility: hidden;
+    opacity: 0;
+    transition: 0.2s ease;
+}
+.modal-overlay.active {
+    visibility: visible;
+    opacity: 1;
+}
+.dam-detail-modal {
+    width: 750px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    background: linear-gradient(145deg, #0a1a2f 0%, #0b2440 100%);
+    border: 1px solid #2f6c9f;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -8px rgba(0,0,0,0.8);
+    padding: 28px 32px;
+    color: #e5f0ff;
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    transform: scale(0.96);
+    transition: transform 0.2s;
+}
+.modal-overlay.active .dam-detail-modal {
+    transform: scale(1);
+}
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #2a5f8a;
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+}
+.modal-header h3 {
+    margin: 0;
+    font-size: 24px;
+    color: #c2e5ff;
+}
+.modal-close {
+    font-size: 28px;
+    cursor: pointer;
+    color: #8db7e0;
+}
+.modal-close:hover {
+    color: #ff6b6b;
+}
+.detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+.detail-table tr {
+    border-bottom: 1px solid rgba(47,108,159,0.3);
+}
+.detail-table td {
+    padding: 12px 8px;
+}
+.detail-label {
+    width: 140px;
+    color: #a0c6e9;
+}
+.detail-value {
+    color: #ffffff;
+    font-weight: 500;
+}
+.detail-section {
+    margin-top: 24px;
+    border-top: 1px solid #2a5f8a;
+    padding-top: 18px;
+}
+.section-title {
+    font-size: 18px;
+    color: #00d4ff;
+    margin-bottom: 16px;
+}
+.update-time {
+    text-align: right;
+    font-size: 13px;
+    color: #6d93b5;
+    margin-top: 20px;
+}
+.loading-text {
+    text-align: center;
+    padding: 30px;
+    color: #9cb8d4;
+} 
+    </style>
+</head>
+
+<body>
+    <!-- ==================== 5. Three.js 渲染层 ==================== -->
+    <div id="webgl"></div>
+    
+    <!-- ==================== 6. 加载进度条 ==================== -->
+    <div id="container">
+        <div id="per"></div>
+    </div>
+    
+    <!-- ==================== 7. 主仪表盘 ==================== -->
+    <div class="dashboard">
+        
+        <!-- ---- 7.1 头部栏 ---- -->
+        <div class="header">
+            <div class="header-left">
+                <span id="currentTime">2024-08-16 16:25:30</span>
+            </div>
+            <div class="header-title">智御安澜 智慧水利监测</div>
+            <div class="header-right">
+                <span>用户名:<span id='user_name'>获取失败</span></span>
+                <span id="return_navigation"><img src="/images/logout.png">返回导航</span>
+            </div>
+        </div>
+        
+        <!-- ==================== 8. 左侧面板 ==================== -->
+        <div class="left-panel" style="height: 100%;">
+            
+            <!-- 8.1 大坝概述 -->
+            <div class="panel-section" style="height: 26%;">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <div class="panel-title">大坝概述</div>
+                    <div class="panel-subtitle">Overview of the dam</div>
+                </div>
+                <div class="data-grid">
+                    <div class="grid-left" id="dam-left"></div>
+                    <div class="grid-center" id="dam-center"></div>
+                    <div class="grid-right" id="dam-right"></div>
+                </div>
+            </div>
+
+            <!-- 8.2 水质数据概览 -->
+            <div class="panel-section" style="height: 28%;">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <div class="panel-title">水质数据概览</div>
+                    <div class="panel-subtitle">Overview of water quality data</div>
+                </div>
+                <div class="chart-container" id="waterQualityChart"></div>
+            </div>
+
+            <!-- 8.3 坝体震动监测 -->
+            <div class="panel-section" style="height: 30%;">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <div class="panel-title">坝体震动监测</div>
+                    <div class="panel-subtitle">Dam vibration monitoring</div>
+                </div>
+                <div class="chart-container" id="vibrationChart"></div>
+            </div>
+            
+        </div>
+        
+        <!-- ==================== 9. 右侧面板 ==================== -->
+        <div class="right-panel" style="height: 92%;">
+            
+            <!-- 9.1 水位趋势 -->
+            <div class="panel-section" style="height: 30%;">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <div class="panel-title clickable" data-rotation="0">水位趋势</div>
+                    <div class="panel-subtitle">Water level trend</div>
+                </div>
+                <div class="chart-container" id="waterLevelChart"></div>
+            </div>
+            
+            <!-- 9.3 周界安全 -->
+            <div class="panel-section" style="height: 35.5%;">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <div class="panel-title clickable" data-rotation="180" onclick="window.location.href='/monitor.html'" style="cursor:pointer">周界安全</div>
+                    <div class="panel-subtitle">Perimeter security</div>
+                </div>
+                <div class="camera-grid" id="camera-grid" style="height: 80%;padding: 2% 4%;font-size: 0.8vw;"></div>
+                <div id="video-container">
+                    <div id="video-frame">
+                        <img id="video_feed" src="" crossorigin="anonymous"></img>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9.4 山体滑坡监测 -->
+            <div class="panel-section" style="height: 40%;">
+                <div class="panel-header" style="padding: 0px;">
+                    <div class="panel-icon"></div>
+                    <div class="panel-title clickable" data-rotation="270">山体滑坡监测</div>
+                    <div class="panel-subtitle">Landslide monitoring</div>
+                </div>
+                <div class="gauge-container">
+                    <div>
+                        <div class="gauge" id="gauge1"></div>
+                        <div class="gauge-desc" style="font-size: 14px; color: #ffffff;">山体位移</div>
+                    </div>
+                    <div>
+                        <div class="gauge" id="gauge2"></div>
+                        <div class="gauge-desc" style="font-size: 14px; color: #ffffff;">土壤湿度</div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- ==================== 10. 页面脚本 ==================== -->
+    <script>
+        // 10.1 用户权限验证
+        user.then(user_info=>{
+            var level_list=[0,2];//仅允许权限0,2访问
+            if(!level_list.includes(user_info.level)){
+                alert("当前用户权限禁止访问！");
+                history.back();
+            }
+            document.getElementById('user_name').textContent=`${user_info.username}`;
+        });
+        
+        // 10.2 返回导航
+        document.getElementById('return_navigation').addEventListener("click",function(){
+            window.location.href='navigation.html';
+        });
+    </script>
+    
+    <!-- ==================== 11. 功能模块脚本 ==================== -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./build/three.module.js",
+                "three/addons/": "./jsm/"
+            }
+        }
+    </script>
+    <script src="/js/three.js" type="module"></script>
+    <script src="/js/update_time.js"></script>
+    <script src="/js/dam_chart.js"></script>
+    <script src="/js/water_level_rt_chart.js"></script>
+    <script src="/js/water_level_rt_data.js"></script>
+    <script src="/js/vibration_chart.js"></script>
+    <script src="/js/vibration_data.js"></script>
+    <script src="/js/water_level_p_chart.js"></script>
+    <script src="/js/water_level_p_data.js"></script>
+    <script src="/js/water_quality_chart.js"></script>
+    <script src="/js/camera_chart.js"></script>
+    <script src="/js/camera_data.js"></script>
+    <script src="/js/gauge_chart.js"></script>
+ 
+</body>
+</html>

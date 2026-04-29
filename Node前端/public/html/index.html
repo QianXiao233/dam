@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>网安水稳系统登陆平台</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      background: url('/images/1.jpg') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .login-container {
+      width: 400px;
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .login-title {
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    .captcha-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .captcha-group input {
+      flex: 1;
+      margin-right: 10px;
+    }
+
+    .captcha-img {
+      width: 100px;
+      height: 40px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 3px;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .login-btn:hover {
+      background-color: #0056b3;
+    }
+
+    .error-msg {
+      color: red;
+      font-size: 14px;
+      margin-top: 5px;
+      display: none;
+    }
+
+    .global-error {
+      color: red;
+      font-size: 14px;
+      text-align: center;
+      margin: 10px 0;
+      display: none;
+    }
+
+    /* 自定义警告弹窗样式 */
+    .warning-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .warning-modal.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      background-color: #fff;
+      width: 400px;
+      padding: 30px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-icon {
+      color: #ff4500;
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      color: #ff4500;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+
+    .modal-message {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 25px;
+      line-height: 1.5;
+    }
+
+    .modal-btn {
+      padding: 10px 30px;
+      background-color: #ff4500;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .modal-btn:hover {
+      background-color: #cc3700;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- SQL注入警告弹窗（默认隐藏） -->
+  <div class="warning-modal" id="sqlWarningModal">
+    <div class="modal-content">
+      <div class="modal-icon">⚠️</div>
+      <h3 class="modal-title">SQL注入攻击警告</h3>
+      <p class="modal-message">检测到疑似SQL注入攻击行为！<br>请立刻停止非法操作，系统已记录相关行为日志。<br>如继续违规操作，将追究法律责任。</p>
+      <button class="modal-btn" id="closeModalBtn">确认</button>
+    </div>
+  </div>
+  <div class="login-container">
+    <h2 class="login-title">网安水稳系统登陆平台</h2>
+    
+    <!-- 全局错误提示 -->
+    <div class="global-error" id="password-error-msg">用户名或密码错误</div>
+    
+    <div class="form-group">
+      <label for="username">用户名</label>
+      <input type="text" id="username" placeholder="请输入用户名">
+      <div class="error-msg" id="username-error">用户名不能为空</div>
+    </div>
+    <div class="form-group">
+      <label for="password">密码</label>
+      <input type="password" id="password" placeholder="请输入密码">
+      <div class="error-msg" id="password-empty-error">密码不能为空</div>
+    </div>
+    <button class="login-btn" id="login-btn" onclick=login()>登录</button>
+  </div>
+
+</body>
+<script>
+  // 关闭SQL注入警告弹窗
+  document.getElementById('closeModalBtn').addEventListener('click', function() {
+    document.getElementById('sqlWarningModal').classList.remove('active');
+  });
+  </script>
+<script src="/js/jsencrypt.min.js"></script>
+<script src="/js/RSA.js"></script>
+<script src="/js/apiUtils.js"></script>
+<script src="/js/login.js"></script>
+</html>

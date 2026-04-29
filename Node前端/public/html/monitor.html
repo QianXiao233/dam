@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能溺水监测系统</title>
+    <link rel="stylesheet" href="/css/monitor.css" />
+    <script src="/js/apiUtils.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+        let user = yanzheng();
+    </script>
+    <style>
+        /* 进度条css样式 */
+        #container {
+            position: absolute;
+            width: 400px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -200px;
+            margin-top: -8px;
+            border-radius: 8px;
+            border: 1px solid #009999;
+            overflow: hidden;
+            z-index: 25;
+        }
+
+        #per {
+            height: 100%;
+            width: 0px;
+            background: #00ffff;
+            color: #00ffff;
+            line-height: 15px;
+        }
+    </style>
+</head>
+<script type="importmap">
+        {
+         "imports": {
+             "three": "/build/three.module.js",
+             "three/addons/": "/jsm/"
+         }
+     }
+    </script>
+<script src="/js/three.js" type="module"></script>
+
+<body>
+    <!-- 弹窗 -->
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal-content">
+            <div class="modal-icon">⚠️</div>
+            <h3 class="modal-title">发现疑似人员落水！</h3>
+            <p class="modal-message" id="warn_info">此处插入预警信息</p>
+
+        </div>
+    </div>
+    <div id="webgl"></div>
+    <div id="container">
+        <!-- 进度条 -->
+        <div id="per"></div>
+    </div>
+
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <span id="currentTime">2024-08-16 16:25:30</span>
+            </div>
+            <div class="header-title">智御安澜 智能溺水监测系统</div>
+            <div class="header-right">
+                <span>用户名:<span id='user_name'>获取失败</span></span>
+                <span id="return_navigation"><img src="/images/logout.png">返回导航</span>
+            </div>
+        </div>
+
+        <!-- Alert Bar -->
+
+
+        <div class="left-panel">
+            <div class="panel-header">
+                <div class="panel-icon"></div>
+                <div class="panel-title">监控列表</div>
+                <div class="panel-subtitle">Monitoring List</div>
+            </div>
+            <div>
+                <form class="search" action="/search" method="GET">
+                    <input type="search" class="search-box" name="q" aria-label="搜索" required>
+                    <button type="submit" class="search-button">搜索</button>
+                </form>
+            </div>
+            <div>
+                <div>
+                    <img src="/imagesT/矩形.png" style="position: absolute;top: 8%;width: 94%;height: 12%;">
+                    <div style="position: absolute;top: 11%;left: 10%;">监控点位-1</div>
+                    <img class="l01" id="video_feed_01" src="http://192.168.10.247:5000/video_feed/0"
+                        crossorigin="anonymous"></img>
+
+                    <div id="video-container">
+                        <div id="video-frame">
+                            <img id="video_feed" src="http://192.168.10.247:5000/video_feed/0"
+                                crossorigin="anonymous"></img>
+                        </div>
+                    </div>
+
+                </div>
+                <div>
+                    <img src="/imagesT/矩形.png" style="position: absolute;top: 22%;width: 94%;height: 12%;">
+                    <div style="position: absolute;top: 25%;left: 10%;">监控点位-2</div>
+                    <img class="l02" id="video_feed_02" src="http://192.168.10.247:5000/video_feed/1"
+                        crossorigin="anonymous"></img>
+                    <div id="video-container1">
+                        <div id="video-frame">
+                            <img id="video_feed" src="http://192.168.10.247:5000/video_feed/1" crossorigin="anonymous" ">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <img src=" /imagesT/矩形.png" style="position: absolute;top: 36%;width: 94%;height: 12%;">
+                            <div style="position: absolute;top: 39%;left: 10%;">监控点位-3</div>
+                            <img class="l03" id="video_feed_03" src="http://192.168.10.247:5000/video_feed/2"
+                                crossorigin="anonymous"></img>
+                            <div id="video-container2">
+                                <div id="video-frame">
+                                    <img id="video_feed" src="http://192.168.10.247:5000/video_feed/2"
+                                        crossorigin="anonymous""></img>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class=" panel-header01">
+                                    <div class="panel-icon"></div>
+                                    <div class="panel-title">监控分布</div>
+                                    <div class="panel-subtitle">Monitoring distribution</div>
+                                </div>
+                                <div>
+                                    <img src="/imagesT/定位.png"
+                                        style="width: 95%;height: 25%;position: absolute;top: 56%;">
+                                </div>
+                            </div>
+
+                            <div class="right-panel">
+
+                                <div class="panel-header">
+                                    <div class="panel-icon"></div>
+                                    <div class="panel-title">机器狗巡检</div>
+                                    <div class="panel-subtitle">Robot dog inspection</div>
+                                </div>
+                                <div class="r01"></div>
+
+                                <div class="panel-header02">
+                                    <div class="panel-icon"></div>
+                                    <div class="panel-title">无人机巡检</div>
+                                    <div class="panel-subtitle">AUV inspection</div>
+                                </div>
+                                <div class="r01"></div>
+
+                                <div class="panel-header03">
+                                    <div class="panel-icon"></div>
+                                    <div class="panel-title">无人船巡检</div>
+                                    <div class="panel-subtitle">Unmanned ship inspection</div>
+                                </div>
+                                <div class="r01"></div>
+                            </div>
+                        </div>
+                        <script src="/js/ajax.js"></script>
+                        <script src="/build/three.js" type="module"></script>
+                        <script src="/js/update_time.js"></script>
+                        <script src="/js/audioservice.js"></script>
+                        <script src="/js/drown_warning.js"></script>
+</body>
+<script>
+    user.then(user_info => {
+        var level_list = [0, 3];//仅允许权限0,3访问
+        if (!level_list.includes(user_info.level)) {
+            alert("当前用户权限禁止访问！");
+            history.back();
+        }
+        document.getElementById('user_name').textContent = `${user_info.username}`;
+    });
+    document.getElementById('return_navigation').addEventListener("click", function () {
+        window.location.href = 'navigation.html';
+    });
+    // 点击视频放大的功能
+    document.addEventListener('DOMContentLoaded', function () {
+        // 获取所有需要点击放大的视频元素
+        const videoElements = [
+            document.getElementById('video_feed_01'),
+            document.getElementById('video_feed_02'),
+            document.getElementById('video_feed_03'),
+            document.querySelectorAll('#video_feed') // 如果有多个相同ID的元素
+        ];
+
+        // 创建遮罩层（用于放大显示）
+        function createModalOverlay() {
+            // 检查是否已存在遮罩层
+            let overlay = document.getElementById('videoModalOverlay');
+            if (overlay) {
+                return overlay;
+            }
+
+            // 创建遮罩层
+            overlay = document.createElement('div');
+            overlay.id = 'videoModalOverlay';
+            overlay.style.cssText = `
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.9);
+                z-index: 10000;
+                cursor: pointer;
+                justify-content: center;
+                align-items: center;
+            `;
+
+            // 创建放大后的图片容器
+            const modalContent = document.createElement('div');
+            modalContent.style.cssText = `
+                position: relative;
+                max-width: 90%;
+                max-height: 90%;
+            `;
+
+            // 创建放大后的图片
+            const modalImg = document.createElement('img');
+            modalImg.id = 'modalImage';
+            modalImg.style.cssText = `
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                border-radius: 10px;
+                box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            `;
+
+            // 创建关闭按钮
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '✕';
+            closeBtn.style.cssText = `
+                position: absolute;
+                top: -40px;
+                right: -40px;
+                background: white;
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                font-size: 24px;
+                cursor: pointer;
+                color: #333;
+                transition: all 0.3s;
+            `;
+            closeBtn.onmouseover = () => closeBtn.style.background = '#f0f0f0';
+            closeBtn.onmouseout = () => closeBtn.style.background = 'white';
+
+            modalContent.appendChild(modalImg);
+            modalContent.appendChild(closeBtn);
+            overlay.appendChild(modalContent);
+
+            // 点击遮罩层关闭
+            overlay.onclick = function (e) {
+                if (e.target === overlay) {
+                    overlay.style.display = 'none';
+                }
+            };
+
+            // 点击关闭按钮关闭
+            closeBtn.onclick = function () {
+                overlay.style.display = 'none';
+            };
+
+            document.body.appendChild(overlay);
+            return overlay;
+        }
+
+        // 为单个视频元素添加点击放大功能
+        function addZoomFunctionality(element) {
+            if (!element) return;
+
+            element.style.cursor = 'pointer';
+            element.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const overlay = createModalOverlay();
+                const modalImg = document.getElementById('modalImage');
+
+                // 设置放大显示的图片源
+                modalImg.src = this.src;
+                overlay.style.display = 'flex';
+
+                // ESC键关闭
+                const escHandler = function (e) {
+                    if (e.key === 'Escape') {
+                        overlay.style.display = 'none';
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                };
+                document.addEventListener('keydown', escHandler);
+            });
+        }
+
+        // 为所有视频元素添加点击功能
+        // 方式1：通过ID添加
+        const video1 = document.getElementById('video_feed_01');
+        const video2 = document.getElementById('video_feed_02');
+        const video3 = document.getElementById('video_feed_03');
+
+        addZoomFunctionality(video1);
+        addZoomFunctionality(video2);
+        addZoomFunctionality(video3);
+
+        // 方式2：为所有 class 为 l01, l02, l03 的元素添加
+        document.querySelectorAll('.l01, .l02, .l03').forEach(img => {
+            addZoomFunctionality(img);
+        });
+
+        // 方式3：为所有视频相关的图片添加
+        document.querySelectorAll('img[id*="video_feed"]').forEach(img => {
+            addZoomFunctionality(img);
+        });
+
+        console.log('视频放大功能已启用');
+    });
+    // 弹窗控制函数
+    function showModal() {
+        document.getElementById("warn")
+        document.getElementById('infoModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('infoModal').classList.remove('active');
+    }
+
+    // 给卡片按钮添加点击事件
+    document.addEventListener('DOMContentLoaded', function () {
+        const cardBtn = document.querySelector('.card .action');
+        if (cardBtn) {
+            cardBtn.addEventListener('click', function () {
+                showModal();
+            });
+        }
+
+        // 按ESC关闭弹窗
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    });
+</script>
+
+</html>

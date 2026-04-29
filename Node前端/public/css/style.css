@@ -1,0 +1,595 @@
+@font-face {
+    font-family: "SourceHanSansCN-Medium";
+    src: url(../fonts/SourceHanSansCN-Medium.otf);
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "SourceHanSansCN-Bold";
+    src: url(../fonts/SourceHanSansCN-Bold.otf);
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "SourceHanSansCN-Heavy";
+    src: url(../fonts/SourceHanSansCN-Heavy.otf);
+    font-display: swap;
+}
+
+
+body {
+    position: absolute;
+    background-image: url('../imagesT/天空01.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+#webgl {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+}
+
+.dashboard {
+    pointer-events: none;
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    max-width: 100vw;
+    max-height: 100vh;
+    background-image:
+        url('../images/background2.png'),
+        url('../images/background1.png');
+    background-size: 100% 100%, 100% 100%, cover;
+    background-position: center, center, center;
+    background-repeat: no-repeat, no-repeat, no-repeat;
+    transform-origin: center;
+    overflow: hidden;
+    z-index: 3;
+}
+
+.header {
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background-image: url('../images/header-bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 0 40px;
+    z-index: 1;
+}
+
+.header-left {
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 14px;
+    color: #ffffff;
+    font-weight: normal;
+    line-height: 40px;
+}
+
+.header-title {
+    pointer-events: none;
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    font-family: "SourceHanSansCN-Heavy";
+    font-size: 32px;
+    line-height: 80px;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    letter-spacing: 2px;
+}
+
+.header-right {
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 14px;
+    color: #ffffff;
+    line-height: 40px;
+
+}
+
+.alert-bar {
+    position: absolute;
+    top: 100px;
+    left: 30%;
+    width: 40%;
+    height: 40px;
+    background: linear-gradient(90deg, rgba(139, 69, 19, 0.1) 0%, rgba(178, 34, 34, 0.5) 50%, rgba(139, 69, 19, 0.1) 100%);
+    border-top: 1px solid;
+    border-bottom: 1px solid;
+    border-image: linear-gradient(90deg, rgba(255, 0, 0, 0.1) 0%, rgba(255, 0, 0, 0.5) 50%, rgba(255, 0, 0, 0.1) 100%) 1;
+
+    align-items: center;
+    justify-content: center;
+    gap: 100px;
+    font-size: 14px;
+    z-index: 99;
+    overflow: hidden;
+}
+
+.alert-list {
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    transition: transform 0.5s ease-in-out;
+}
+
+.alert-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ff0000;
+    font-weight: normal;
+    height: 40px;
+}
+
+.alert-icon {
+    width: 20px;
+    height: 20px;
+    background-image: url('../images/waring.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.left-panel {
+    pointer-events: none;
+    position: absolute;
+    left: 30px;
+    top: 110px;
+    width: calc(25% - 30px);
+    height: calc(1080px - 160px);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.right-panel {
+    pointer-events: none;
+    position: absolute;
+    right: 30px;
+    top: 110px;
+    width: calc(25% - 30px);
+    height: calc(1080px - 160px);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.panel-section {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 0 15px;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: none;
+    position: relative;
+}
+
+.panel-header::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 13px;
+    background-image: url('../images/subtitle_bottom.png');
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+}
+
+.panel-icon {
+    width: 20px;
+    height: 20px;
+    background-image: url('../images/subtitle_logo.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: 3px;
+}
+
+.panel-title {
+    font-size: 14px;
+    /* font-weight: bold; */
+    color: #ffffff;
+}
+
+.panel-subtitle {
+    font-size: 12px;
+    color: #a0c4ff;
+    margin-left: auto;
+}
+
+.data-grid {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+}
+
+.grid-left {
+    text-align: left;
+}
+
+.data-item {
+    padding: 5px;
+    margin-top: 3px;
+}
+
+.grid-left .data-item {
+    padding-left: 5px;
+    background-image: url(../images/item-left.png);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.grid-right .data-item {
+    padding-right: 5px;
+    background-image: url(../images/item-right.png);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.grid-right {
+    text-align: right;
+}
+
+.data-label {
+    font-size: 12px;
+    color: #a0c4ff;
+    margin-bottom: 3px;
+}
+
+.data-value {
+    font-size: 12px;
+    color: #79d263;
+}
+
+.data-unit {
+    font-size: 12px;
+    color: #79d263;
+}
+
+.weather-grid {
+    display: flex;
+    justify-content: space-between;
+    height: 100%;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.weather-item {
+    display: flex;
+    gap: 5px;
+}
+
+.weather-label {
+    font-size: 13px;
+    line-height: 25px;
+    width: 40px;
+    color: #a0c4ff;
+}
+
+.weather-value {
+    font-size: 13px;
+    line-height: 25px;
+    color: #79d263;
+}
+
+.quality-table {
+    width: 100%;
+    height: 100%;
+    border-collapse: separate;
+    border-spacing: 0 3px;
+}
+
+.quality-table th,
+.quality-table td {
+    padding: 8px 5px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.quality-table th {
+    color: #a0c4ff;
+    font-weight: normal;
+}
+
+.quality-table thead tr {
+    background-image: url(../images/table_head_bg.png);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.quality-table thead tr th {
+    position: relative;
+}
+
+.quality-table thead tr th::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 11px;
+    height: 7px;
+    margin-left: -5.5px;
+    background-image: url(../images/table-icon.png);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.quality-table tbody tr {
+    background-image: url(../images/table_content_bg.png);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.quality-table td {
+    color: #ffffff;
+}
+
+
+
+.chart-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* 统一八个模块的内容区域高度为170px */
+.panel-section {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 0 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-section .panel-header {
+    flex-shrink: 0;
+}
+
+.panel-section>div:not(.panel-header) {
+    height: 170px;
+    overflow: hidden;
+}
+
+.mini-chart {
+    width: 100%;
+    height: 80px;
+}
+
+.camera-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    height: auto !important;
+    align-content: center;
+}
+
+.camera-item {
+    aspect-ratio: 16/9;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid #00d4ff;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.camera-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    font-size: 10px;
+    padding: 2px 5px;
+    text-align: center;
+}
+
+.gauge-container {
+    display: flex;
+    gap: 80px;
+    justify-content: center;
+    height: 100%;
+    align-items: center;
+    padding: 0px 0;
+}
+
+.gauge {
+    width: 100px;
+    height: 100px;
+}
+
+.gauge-desc {
+    width: 100px;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 15px;
+    color: #ffffff;
+}
+
+.forecast-chart {
+    width: 100%;
+    height: 120px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #00d4ff;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.divider {
+    height: 2px;
+    background-image: url('../images/subtitle_bottom.png');
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    margin: 10px 0;
+}
+
+.trapezoid-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    position: relative;
+    border-bottom: 1px solid #ffffff;
+}
+
+.trapezoid {
+    width: 30px;
+    height: 170px;
+    background: #8eb5f3;
+    opacity: 0.8;
+    position: absolute;
+    border-top: 1px solid #8eb5f3;
+    /* border-bottom: 1px solid #ffffff; */
+    border-left: 1px solid #8eb5f3;
+    padding-left: 30px;
+}
+
+.trapezoid:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /* 调整底部的高度 */
+    background: inherit;
+    /* 继承父元素的背景 */
+    transform-origin: top left;
+    /* 设置旋转原点 */
+    transform: skew(10deg);
+    /* 倾斜角度 */
+
+    /* border-bottom: 1px solid #ffffff; */
+    border-right: 1px solid #8eb5f3;
+
+}
+
+.trapezoid-line {
+    height: 1px;
+    width: calc(100% - 30px);
+    position: absolute;
+    left: 30px;
+}
+
+.trapezoid-line-red {
+    border-color: #ff0000;
+    top: 10%;
+}
+
+.trapezoid-line-orange {
+    border-color: #ffa500;
+    top: 20%;
+}
+
+.trapezoid-line-yellow {
+    border-color: #ffff00;
+    top: 30%;
+}
+
+.trapezoid-line-blue {
+    border-color: #0000ff;
+    top: 40%;
+}
+
+.trapezoid-line-text {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    color: #177dd1;
+}
+
+.trapezoid-content {
+    width: calc(100% - 30px);
+    position: absolute;
+    bottom: 0;
+    left: 30px;
+    height: 0%;
+    background: linear-gradient(to bottom, rgba(0, 255, 0, 0.1) 0%, rgba(0, 255, 0, 0.3) 50%, rgba(0, 255, 0, 0.6) 100%);
+    clip-path: polygon(0% 15%, 5% 10%, 10% 15%, 15% 8%, 20% 15%, 25% 12%, 30% 15%,
+            35% 10%, 40% 15%, 45% 8%, 50% 15%, 55% 12%, 60% 15%, 65% 10%,
+            70% 15%, 75% 8%, 80% 15%, 85% 12%, 90% 15%, 95% 10%, 100% 15%,
+            100% 100%, 0% 100%);
+    transition: height 0.5s ease-in-out;
+}
+
+/* 响应式缩放 - 确保在小屏幕上正确显示 */
+@media screen and (max-width: 1920px) or (max-height: 1080px) {
+    .dashboard {
+        transform: scale(min(100vw / 1920px, 100vh / 1080px));
+    }
+}
+
+/* 超大屏幕保持1080p尺寸 */
+@media screen and (min-width: 1921px) and (min-height: 1081px) {
+    .dashboard {
+        transform: none;
+    }
+}
+
+/* =======================================video============================================= */
+#video-container {
+    position: absolute;
+    top: 10%;
+    height: 40%;
+    width: 130%;
+    right: 140%;
+    border: 3px solid #333;
+    background-color: #000000;
+}
+
+#video-frame {
+    position: relative;
+    border: 3px solid #195bea;
+}
+#camera-item-01{
+    position:absolute;
+    z-index: 20;
+}
+
+/* ========================================MODEL=========================== */
