@@ -1,7 +1,3 @@
-"""
-data_collector.py - 数据采集器（全水位覆盖版）
-随机加水目标，覆盖45-120全区间
-"""
 import socket
 import time
 import random
@@ -22,7 +18,7 @@ SAVE_INTERVAL = 300
 # ========== 水位参数 ==========
 WATER_DEAD = 50
 WATER_CRITICAL = 55
-WATER_NORMAL_LOW = 45
+WATER_NORMAL_LOW = 55
 WATER_NORMAL_HIGH = 80
 WATER_WARNING = 80
 WATER_WARNING_HIGH = 110
