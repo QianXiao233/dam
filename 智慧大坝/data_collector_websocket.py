@@ -1,23 +1,23 @@
 """
-data_collector.py - 数据采集器（WebSocket + HTTP版）
-WebSocket接收水位数据，HTTP GET控制闸门开关
+data_collector.py - 数据采集器（WebSocket客户端 + HTTP版）
+连接传感器WebSocket接收水位数据，HTTP GET控制闸门
+随机加水目标，覆盖全水位区间
 """
 import asyncio
 import time
 import random
-import struct
+import json
 import numpy as np
 from collections import deque
-import websockets
 import requests
+import websockets
 
 # ========== WebSocket配置 ==========
-WS_HOST = '0.0.0.0'
-WS_PORT = 8085
+WS_URL = "ws://192.168.10.251:8085/websocket"
 
 # ========== 闸门控制HTTP接口 ==========
-GATE_OPEN_URL = "http://192.168.10.251:8082/RelayControl/Open"  # 改成实际地址
-GATE_CLOSE_URL = "http://192.168.10.251:8082/RelayControl/Close"  # 改成实际地址
+GATE_OPEN_URL = "http://192.168.10.251:8085/RelayControl/Open"
+GATE_CLOSE_URL = "http://192.168.10.251:8085/RelayControl/Close"
 
 # ========== 采集参数 ==========
 HISTORY_LENGTH = 10
@@ -28,7 +28,7 @@ SAVE_INTERVAL = 300
 # ========== 水位参数 ==========
 WATER_DEAD = 50
 WATER_CRITICAL = 55
-WATER_NORMAL_LOW = 55
+WATER_NORMAL_LOW = 45
 WATER_NORMAL_HIGH = 80
 WATER_WARNING = 80
 WATER_WARNING_HIGH = 110
@@ -49,26 +49,21 @@ RANDOM_FILL_WEIGHTS = {
 }
 
 
-def parse_water_data(data: bytes) -> int:
-    """解析水位数据帧，返回液位"""
-    if isinstance(data, str):
-        # 如果是字符串，尝试直接转数字
-        try:
-            return int(data)
-        except:
-            return None
-
-    if isinstance(data, bytes):
-        # 原来的帧格式
-        if len(data) < 13 or data[0] != 0xAA or data[-1] != 0xBB:
-            # 尝试直接转数字
-            try:
-                return int(data.decode())
-            except:
-                return None
-        return struct.unpack('>H', data[4:6])[0]
-
-    return None
+def parse_water_data(raw_data) -> int:
+    """
+    解析WebSocket发来的JSON数据，提取液位值
+    Java格式: [[液位,浊度,震动,湿度,倾斜,泵状态],[预测值]]
+    """
+    try:
+        if isinstance(raw_data, bytes):
+            raw_data = raw_data.decode('utf-8')
+        raw_data = raw_data.strip()
+        data = json.loads(raw_data)
+        sensor_array = data[0]
+        water_level = int(sensor_array[0])
+        return water_level
+    except (json.JSONDecodeError, IndexError, ValueError, TypeError):
+        return None
 
 
 def is_valid_water(water: int) -> bool:
@@ -130,13 +125,14 @@ class DataCollector:
         self.action_history = deque(maxlen=HISTORY_LENGTH)
         self.training_data = []
         self.current_action = 0
+        self.last_action = -1
         self.frame_count = 0
         self.add_water_count = 0
         self.abnormal_count = 0
         self.last_save_time = 0
         self.current_round = 0
-        self.paused = False  # 加水时暂停
-        self.latest_water = None  # 最新水位
+        self.paused = False
+        self.latest_water = None
         self.zone_samples = {
             '濒死': 0,
             '正常偏低': 0,
@@ -147,11 +143,14 @@ class DataCollector:
 
     def send_action(self, action: int):
         """通过HTTP GET控制闸门"""
+        if action == self.last_action:
+            return
         url = GATE_OPEN_URL if action == 1 else GATE_CLOSE_URL
         try:
             requests.get(url, timeout=2)
+            self.last_action = action
         except Exception as e:
-            print(f"\n[⚠️] 闸门控制请求失败: {e}")
+            print(f"\n[⚠️] 闸门控制失败: {e}")
 
     def save_data(self):
         np.save(SAVE_FILE, self.training_data)
@@ -197,15 +196,14 @@ class DataCollector:
         level = get_level_name(water)
         act = "开🔓" if self.current_action == 1 else "关🔒"
         total = max(len(self.training_data), 1)
-        parts = [f"{z}:{c / total * 100:.0f}%" for z, c in self.zone_samples.items()]
+        parts = [f"{z}:{c/total*100:.0f}%" for z, c in self.zone_samples.items()]
         coverage = "|".join(parts)
-        print(
-            f"\r[帧{self.frame_count:6d}] 水位:{water:4d} {level} | 闸门:{act} | 样本:{len(self.training_data):6d} | {coverage}{extra}",
-            end='', flush=True)
+        print(f"\r[帧{self.frame_count:6d}] 水位:{water:4d} {level} | 闸门:{act} | 样本:{len(self.training_data):6d} | {coverage}{extra}", end='', flush=True)
 
     def handle_add_water(self, current_water=None):
         self.send_action(0)
         self.current_action = 0
+        self.last_action = -1  # 重置，确保加水后的第一次命令会发送
         self.paused = True
         target = random_fill_target()
         self.current_round += 1
@@ -213,14 +211,14 @@ class DataCollector:
         self.save_data()
 
         print(f"\n")
-        print(f"{'─' * 50}")
+        print(f"{'─'*50}")
         print(f"💧 [第{self.current_round}轮加水]")
         print(f"   当前水位: {current_water}")
         print(f"   🎯 本轮加水目标: {target}")
         print(f"   目标区间: [{get_level_name(target)}]")
         print(f"   死水位: {WATER_DEAD} | 濒死线: {WATER_CRITICAL}")
         print(f"   💾 数据已保存（{len(self.training_data)}条样本）")
-        print(f"{'─' * 50}")
+        print(f"{'─'*50}")
 
         while True:
             cmd = input("\n按 Enter 查看水位，输入 ok 继续训练: ").strip().lower()
@@ -245,97 +243,96 @@ class DataCollector:
         self.paused = False
         print(f"   ✅ 第{self.current_round}轮开始\n")
 
-    async def handle_ws_message(self, websocket, path):
-        """处理WebSocket消息"""
-        try:
-            async for message in websocket:
-                self.frame_count += 1
-
-                # 解析水位数据
-                if isinstance(message, bytes):
-                    water = parse_water_data(message)
-                else:
-                    water = parse_water_data(message)
-
-                if not is_valid_water(water):
-                    self.abnormal_count += 1
-                    continue
-
-                self.latest_water = water
-
-                if self.paused:
-                    continue  # 加水暂停期间不采集
-
-                # 检查是否需要加水
-                if water <= ADD_WATER_AT:
-                    self.add_water_count += 1
-                    self.handle_add_water(water)
-                    continue
-
-                # 记录样本
-                self.record_sample(water)
-                self.update_history(water)
-
-                # 选择动作
-                self.choose_action()
-
-                # 定时保存
-                extra = ""
-                if time.time() - self.last_save_time >= SAVE_INTERVAL:
-                    self.save_data()
-                    extra = " | 💾已保存"
-
-                self.print_status(water, extra)
-
-        except websockets.exceptions.ConnectionClosed:
-            print(f"\n[⚠️] WebSocket连接断开")
-
-    async def run_ws_server(self):
-        """启动WebSocket服务器"""
-        print(f"\n{'=' * 60}")
-        print(f"📊 数据采集器启动（WebSocket + HTTP版）")
-        print(f"   WebSocket监听: ws://0.0.0.0:{WS_PORT}")
+    async def run(self):
+        print(f"\n{'='*60}")
+        print(f"📊 数据采集器启动（WebSocket客户端 + HTTP版）")
+        print(f"   连接地址: {WS_URL}")
         print(f"   闸门控制: HTTP GET")
         print(f"   采集时长: {COLLECT_SECONDS}秒 | 自动保存: 每{SAVE_INTERVAL}秒")
-        print(f"{'=' * 60}\n")
+        print(f"   水位体系:")
+        print(f"     死: 0-{WATER_DEAD} | 濒: {WATER_DEAD}-{WATER_CRITICAL}")
+        print(f"     正常: {WATER_NORMAL_LOW}-{WATER_NORMAL_HIGH}")
+        print(f"     预警: {WATER_WARNING}-{WATER_WARNING_HIGH}")
+        print(f"     应急: {WATER_EMERGENCY}+ | 异常: >{WATER_MAX_VALID}")
+        print(f"   随机加水范围: {RANDOM_FILL_MIN}-{RANDOM_FILL_MAX}")
+        print(f"   区间权重: 正常40% | 预警30% | 应急20% | 正常偏高10%")
+        print(f"{'='*60}\n")
 
         print(f"\n💧 请先加水至 {INITIAL_FILL_TO} 左右，按 Enter 开始...")
         input()
 
-        print(f"[⏳] 等待WebSocket连接...")
-
         self.last_save_time = time.time()
         start_time = time.time()
 
-        # 启动WebSocket服务器
-        async with websockets.serve(self.handle_ws_message, WS_HOST, WS_PORT):
-            print(f"[✅] WebSocket服务器已启动，等待数据...")
-            print(f"⏳ 开始采集（实时显示，Ctrl+C 停止）...\n")
-
+        while True:
             try:
-                # 等待采集时长
-                while time.time() - start_time < COLLECT_SECONDS:
-                    await asyncio.sleep(1)
-            except KeyboardInterrupt:
-                print(f"\n\n⏹️ 用户中断")
+                print(f"[⏳] 正在连接传感器 {WS_URL} ...")
+                async with websockets.connect(WS_URL) as websocket:
+                    print(f"[✅] 已连接！等待水位数据...\n")
+                    print(f"⏳ 开始采集（实时显示，Ctrl+C 停止）...\n")
 
-        elapsed = time.time() - start_time
-        self.save_data()
-        self.send_action(0)
+                    async for message in websocket:
+                        self.frame_count += 1
 
-        print(f"\n{'=' * 60}")
-        print(f"✅ 采集完成！")
-        print(f"   时长: {elapsed:.0f}秒 | 帧数: {self.frame_count}")
-        print(f"   样本: {len(self.training_data)} | 异常: {self.abnormal_count}")
-        print(f"   加水: {self.add_water_count}轮")
-        print(f"💾 最终保存至 {SAVE_FILE}")
-        print(f"{'=' * 60}")
+                        water = parse_water_data(message)
+                        if not is_valid_water(water):
+                            self.abnormal_count += 1
+                            continue
 
-    def run(self):
-        """入口"""
-        asyncio.run(self.run_ws_server())
+                        self.latest_water = water
+
+                        if self.paused:
+                            continue
+
+                        # 检查是否需要加水
+                        if water <= ADD_WATER_AT:
+                            self.add_water_count += 1
+                            self.handle_add_water(water)
+                            continue
+
+                        # 记录样本
+                        self.record_sample(water)
+                        self.update_history(water)
+
+                        # 选择动作
+                        self.choose_action()
+
+                        # 定时保存
+                        extra = ""
+                        if time.time() - self.last_save_time >= SAVE_INTERVAL:
+                            self.save_data()
+                            extra = " | 💾已保存"
+
+                        self.print_status(water, extra)
+
+                        # 时间到了自动停止
+                        if time.time() - start_time >= COLLECT_SECONDS:
+                            print(f"\n\n⏰ 采集时长已到，正在停止...")
+                            self.save_data()
+                            self.send_action(0)
+                            elapsed = time.time() - start_time
+                            print(f"\n{'='*60}")
+                            print(f"✅ 采集完成！")
+                            print(f"   时长: {elapsed:.0f}秒 | 帧数: {self.frame_count}")
+                            print(f"   样本: {len(self.training_data)} | 异常: {self.abnormal_count}")
+                            print(f"   加水: {self.add_water_count}轮")
+                            print(f"💾 最终保存至 {SAVE_FILE}")
+                            print(f"{'='*60}")
+                            return
+
+            except websockets.exceptions.ConnectionClosed:
+                print(f"\n[⚠️] WebSocket连接断开，5秒后重连...")
+                await asyncio.sleep(5)
+            except Exception as e:
+                print(f"\n[⚠️] 连接异常: {e}，5秒后重连...")
+                await asyncio.sleep(5)
 
 
 if __name__ == '__main__':
     collector = DataCollector()
-    collector.run()
+    try:
+        asyncio.run(collector.run())
+    except KeyboardInterrupt:
+        print(f"\n\n⏹️ 用户中断")
+        collector.save_data()
+        collector.send_action(0)

@@ -1,10 +1,10 @@
 """
-dam_brain.py - 智能大脑（WebSocket + HTTP版）
-WebSocket接收传感器水位数据，HTTP GET控制闸门，Ollama生成口语化解释
+dam_brain.py - 智能大脑（WebSocket客户端 + HTTP版）
+连接传感器WebSocket，接收JSON数组格式的水位数据
 """
 import asyncio
 import time
-import random
+import json
 import struct
 import numpy as np
 import torch
@@ -14,12 +14,11 @@ import requests
 import websockets
 
 # ========== WebSocket配置 ==========
-WS_HOST = '0.0.0.0'
-WS_PORT = 8085
+WS_URL = "ws://192.168.10.251:8085/websocket"
 
 # ========== 闸门控制HTTP接口（改成实际地址）==========
-GATE_OPEN_URL = "http://192.168.10.251:8082/RelayControl/Open"  # 改成实际地址
-GATE_CLOSE_URL = "http://192.168.10.251:8082/RelayControl/Close"  # 改成实际地址
+GATE_OPEN_URL = "http://192.168.10.251:8085/RelayControl/Open"  # 改成实际地址
+GATE_CLOSE_URL = "http://192.168.10.251:8085/RelayControl/Close"  # 改成实际地址
 
 # ========== Ollama配置 ==========
 OLLAMA_MODEL = "qwen2.5:0.5b"
@@ -48,7 +47,7 @@ COST_SWITCH = 5.0
 # ========== 水位参数 ==========
 WATER_DEAD = 50
 WATER_CRITICAL = 55
-WATER_NORMAL_LOW = 55
+WATER_NORMAL_LOW = 45
 WATER_NORMAL_HIGH = 80
 WATER_WARNING = 80
 WATER_WARNING_HIGH = 110
@@ -60,23 +59,33 @@ ADD_WATER_TO = 65
 TARGET_WATER = 65
 
 
-def parse_water_data(data) -> int:
-    """解析水位数据，支持字节帧和字符串"""
-    if isinstance(data, str):
-        try:
-            return int(data.strip())
-        except:
-            return None
+def parse_water_data(raw_data) -> int:
+    """
+    解析WebSocket发来的JSON数据，提取液位值
+    Java格式: [[液位,浊度,震动,湿度,倾斜,泵状态],[预测值]]
+    """
+    try:
+        # WebSocket消息是字符串
+        if isinstance(raw_data, bytes):
+            raw_data = raw_data.decode('utf-8')
 
-    if isinstance(data, bytes):
-        if len(data) >= 13 and data[0] == 0xAA and data[-1] == 0xBB:
-            return struct.unpack('>H', data[4:6])[0]
-        try:
-            return int(data.decode().strip())
-        except:
-            return None
+        # 去掉首尾空格
+        raw_data = raw_data.strip()
 
-    return None
+        # 解析JSON
+        data = json.loads(raw_data)
+
+        # 格式: [[106,2345,3456,4567,1,0],["预测值"]]
+        sensor_array = data[0]  # 第一个数组是传感器数据
+
+        # 液位是第一个元素
+        water_level = int(sensor_array[0])
+
+        return water_level
+
+    except (json.JSONDecodeError, IndexError, ValueError, TypeError) as e:
+        print(f"\n[⚠️] 数据解析失败: {e}, 原始数据: {raw_data[:100]}")
+        return None
 
 
 def is_valid_water(water: int) -> bool:
@@ -101,11 +110,10 @@ def get_level_name(water: int) -> str:
 
 
 class WorldModel(nn.Module):
-    """世界模型"""
     def __init__(self, history_len=10, hidden_size=64, num_layers=2):
         super().__init__()
         self.lstm = nn.LSTM(input_size=2, hidden_size=hidden_size,
-                           num_layers=num_layers, batch_first=True)
+                            num_layers=num_layers, batch_first=True)
         self.output_head = nn.Sequential(
             nn.Linear(hidden_size, 32),
             nn.ReLU(),
@@ -134,7 +142,6 @@ class WorldModel(nn.Module):
 
 
 class ExperienceMemory:
-    """经验记忆库"""
     def __init__(self, max_size=500):
         self.water_histories = deque(maxlen=max_size)
         self.action_histories = deque(maxlen=max_size)
@@ -168,7 +175,6 @@ class ExperienceMemory:
 
 
 class DamBrain:
-    """智能大脑"""
     def __init__(self, model_path='world_model.pt'):
         ckpt = torch.load(model_path, weights_only=False)
         self.model = WorldModel(ckpt['history_len'], ckpt['hidden_size'], ckpt['num_layers'])
@@ -190,11 +196,8 @@ class DamBrain:
         self.last_prediction = None
         self.current_action = 0
         self.last_action = -1
-        self.latest_water = None
-        self.paused = False
 
     def send_action(self, action: int):
-        """通过HTTP GET控制闸门"""
         if action == self.last_action:
             return
         url = GATE_OPEN_URL if action == 1 else GATE_CLOSE_URL
@@ -245,7 +248,6 @@ class DamBrain:
 
         current = self.water_history[-1]
 
-        # 硬规则兜底
         if current >= 100:
             return 1
 
@@ -272,7 +274,6 @@ class DamBrain:
             level = get_level_name(current)
             avg_error = self.memory.get_average_error()
 
-            # 计算变化速率
             if len(self.water_history) >= 5:
                 recent = list(self.water_history)[-5:]
                 rate = (recent[-1] - recent[0]) / 5
@@ -282,14 +283,12 @@ class DamBrain:
             print(f"\n🧠 思考#{self.think_count} | 水位:{current:.0f} {level} | 预测终点:{final_pred:.0f} | 代价:{best_cost:.2f}")
             print(f"   📊 误差:{avg_error:.2f} | 记忆:{self.memory.size()} | 已学:{self.learn_count}次")
 
-            # 生成口语化解释
             explanation = self.generate_explanation(current, level, best_seq[0], final_pred, best_cost, rate)
             print(f"   💬 {explanation}")
 
         return best_seq[0]
 
     def generate_explanation(self, water, level, action, prediction, cost, rate):
-        """用Ollama生成口语化解释，失败则降级为模板"""
         action_text = "开闸放水" if action == 1 else "关闸省水"
 
         prompt = f"""你是水坝AI的翻译官。用一句通俗的话（30字内）解释这个决定：
@@ -305,7 +304,6 @@ class DamBrain:
             )
             return response['message']['content'].strip()
         except Exception:
-            # 降级为模板引擎
             if action == 1 and rate > 1.0:
                 return "水位涨得太快，提前开闸放水，防止撞警戒线。"
             elif action == 1 and water >= 110:
@@ -344,127 +342,102 @@ class DamBrain:
 
         print(f"   ✅ 完成 | 误差:{self.memory.get_average_error():.2f}")
 
-    async def handle_ws_message(self, websocket, path):
-        """处理WebSocket消息"""
-        print(f"[✅] 传感器已通过WebSocket连接")
-        print(f"\n💧 请加水至 {ADD_WATER_TO} 左右")
-        print(f"   系统已就绪，等待水位数据...\n")
-
-        try:
-            async for message in websocket:
-                # 解析水位
-                water = parse_water_data(message)
-                if not is_valid_water(water):
-                    continue
-
-                self.latest_water = water
-
-                if self.paused:
-                    continue
-
-                # 历史不够，先攒数据
-                if len(self.water_history) < HISTORY_LEN:
-                    self.water_history.append(water)
-                    self.action_history.append(0)
-                    self.send_action(0)
-                    self.last_action = 0
-                    if len(self.water_history) == HISTORY_LEN:
-                        print(f"\n✅ 初始化完成，起始水位: {water:.0f} {get_level_name(water)}")
-                        print(f"⏳ 开始运行...\n")
-                    continue
-
-                # 检查是否需要加水
-                if water <= ADD_WATER_AT:
-                    self.water_cycles += 1
-                    self.paused = True
-                    self.send_action(0)
-                    self.last_action = 0
-
-                    print(f"\n💧 [加水] 第{self.water_cycles}次 | 本箱运行{self.step_count}步")
-                    print(f"   加水至 {ADD_WATER_TO}，按 Enter 继续...")
-                    input()
-
-                    self.water_history.clear()
-                    self.action_history.clear()
-                    self.step_count = 0
-                    self.paused = False
-                    print(f"[✅] 请开始加水，系统继续监控...\n")
-                    continue
-
-                # 记录预测误差
-                if self.last_prediction is not None:
-                    self.memory.add_error(self.last_prediction, water)
-
-                # 存入经验库
-                if len(self.water_history) == HISTORY_LEN:
-                    self.memory.add(self.water_history, self.action_history, water)
-
-                # 深度思考
-                action = self.deep_think()
-                self.current_action = action
-
-                # 发送命令
-                self.send_action(action)
-
-                # 更新历史
-                self.water_history.append(water)
-                self.action_history.append(action)
-                self.step_count += 1
-
-                # 预测下一秒
-                self.last_prediction = self.predict_next()
-
-                # 在线学习
-                if self.step_count % LEARN_EVERY_N_STEPS == 0 and self.step_count > 0:
-                    self.online_learn()
-
-                # 实时显示
-                level = get_level_name(water)
-                act_str = "开🔓" if action == 1 else "关🔒"
-                err = self.memory.get_average_error()
-                print(f"\r[{time.strftime('%H:%M:%S')}] {act_str} | 水位:{water:.0f} {level} | 误差:{err:.2f} | 第{self.water_cycles}箱 | 步:{self.step_count}", end='', flush=True)
-
-        except websockets.exceptions.ConnectionClosed:
-            print(f"\n[⚠️] WebSocket连接断开")
-
-    async def run_ws_server(self):
-        """启动WebSocket服务器"""
+    async def run(self):
         print(f"\n{'='*50}")
-        print(f"🧠 智能大脑启动（WebSocket + HTTP版）")
-        print(f"   WebSocket监听: ws://0.0.0.0:{WS_PORT}")
+        print(f"🧠 智能大脑启动（WebSocket客户端 + HTTP版）")
+        print(f"   连接地址: {WS_URL}")
         print(f"   闸门控制: HTTP GET")
         print(f"   目标水位: {TARGET_WATER}")
         print(f"   解释模型: {OLLAMA_MODEL}")
+        print(f"   数据格式: JSON数组 [[液位,...],[预测值]]")
         print(f"{'='*50}\n")
 
-        print(f"[⏳] 等待传感器WebSocket连接...")
-        print(f"   监听地址: ws://0.0.0.0:{WS_PORT}")
+        print(f"\n💧 请加水至 {ADD_WATER_TO} 左右")
+        print(f"   系统已就绪，等待连接传感器...\n")
 
-        try:
-            async with websockets.serve(self.handle_ws_message, WS_HOST, WS_PORT):
-                # 保持服务器运行
-                await asyncio.Future()
-        except KeyboardInterrupt:
-            print(f"\n\n⏹️ 停止 | 思考:{self.think_count} | 加水:{self.water_cycles} | 学习:{self.learn_count}")
+        while True:
+            try:
+                print(f"[⏳] 正在连接传感器 {WS_URL} ...")
+                async with websockets.connect(WS_URL) as websocket:
+                    print(f"[✅] 已连接！等待水位数据...\n")
 
-            torch.save({
-                'model_state_dict': self.model.state_dict(),
-                'water_mean': self.water_mean,
-                'water_std': self.water_std,
-                'history_len': HISTORY_LEN,
-                'hidden_size': 64,
-                'num_layers': 2,
-            }, 'world_model_improved.pt')
-            print(f"[💾] 改进模型已保存至 world_model_improved.pt")
+                    async for message in websocket:
+                        water = parse_water_data(message)
+                        if not is_valid_water(water):
+                            continue
 
-    def run(self):
-        """入口"""
-        try:
-            asyncio.run(self.run_ws_server())
-        except KeyboardInterrupt:
-            pass
+                        # 历史不够，先攒数据
+                        if len(self.water_history) < HISTORY_LEN:
+                            self.water_history.append(water)
+                            self.action_history.append(0)
+                            self.send_action(0)
+                            self.last_action = 0
+                            print(f"\r[初始化] 水位:{water} {get_level_name(water)} [{len(self.water_history)}/{HISTORY_LEN}]", end='', flush=True)
+                            if len(self.water_history) == HISTORY_LEN:
+                                print(f"\n✅ 初始化完成，起始水位: {water:.0f} {get_level_name(water)}")
+                                print(f"⏳ 开始运行...\n")
+                            continue
+
+                        # 检查是否需要加水
+                        if water <= ADD_WATER_AT:
+                            self.water_cycles += 1
+                            self.send_action(0)
+                            self.last_action = 0
+
+                            print(f"\n💧 [加水] 第{self.water_cycles}次 | 本箱运行{self.step_count}步")
+                            print(f"   加水至 {ADD_WATER_TO}，按 Enter 继续...")
+                            input()
+
+                            self.water_history.clear()
+                            self.action_history.clear()
+                            self.step_count = 0
+                            print(f"[✅] 请开始加水，系统继续监控...\n")
+                            continue
+
+                        # 记录预测误差
+                        if self.last_prediction is not None:
+                            self.memory.add_error(self.last_prediction, water)
+
+                        # 存入经验库
+                        if len(self.water_history) == HISTORY_LEN:
+                            self.memory.add(self.water_history, self.action_history, water)
+
+                        # 深度思考
+                        action = self.deep_think()
+                        self.current_action = action
+
+                        # 发送命令
+                        self.send_action(action)
+
+                        # 更新历史
+                        self.water_history.append(water)
+                        self.action_history.append(action)
+                        self.step_count += 1
+
+                        # 预测下一秒
+                        self.last_prediction = self.predict_next()
+
+                        # 在线学习
+                        if self.step_count % LEARN_EVERY_N_STEPS == 0 and self.step_count > 0:
+                            self.online_learn()
+
+                        # 实时显示
+                        level = get_level_name(water)
+                        act_str = "开🔓" if action == 1 else "关🔒"
+                        err = self.memory.get_average_error()
+                        print(f"\r[{time.strftime('%H:%M:%S')}] {act_str} | 水位:{water:.0f} {level} | 误差:{err:.2f} | 第{self.water_cycles}箱 | 步:{self.step_count}", end='', flush=True)
+
+            except websockets.exceptions.ConnectionClosed:
+                print(f"\n[⚠️] 连接断开，5秒后重连...")
+                await asyncio.sleep(5)
+            except Exception as e:
+                print(f"\n[⚠️] 连接异常: {e}，5秒后重连...")
+                await asyncio.sleep(5)
 
 
 if __name__ == '__main__':
     brain = DamBrain(model_path='world_model.pt')
-    brain.run()
+    try:
+        asyncio.run(brain.run())
+    except KeyboardInterrupt:
+        print(f"\n\n⏹️ 停止")
