@@ -1,11 +1,11 @@
 """
-dam_brain.py - 智能大脑（WebSocket客户端 + HTTP版）
+dam_brain.py - 智能大脑（WebSocket客户端 + HTTP版 + 模板引擎解释）
 连接传感器WebSocket，接收JSON数组格式的水位数据
+HTTP GET控制闸门，模板引擎生成口语化解释
 """
 import asyncio
 import time
 import json
-import struct
 import numpy as np
 import torch
 import torch.nn as nn
@@ -16,12 +16,9 @@ import websockets
 # ========== WebSocket配置 ==========
 WS_URL = "ws://192.168.10.251:8085/websocket"
 
-# ========== 闸门控制HTTP接口（改成实际地址）==========
-GATE_OPEN_URL = "http://192.168.10.251:8085/RelayControl/Open"  # 改成实际地址
-GATE_CLOSE_URL = "http://192.168.10.251:8085/RelayControl/Close"  # 改成实际地址
-
-# ========== Ollama配置 ==========
-OLLAMA_MODEL = "qwen2.5:0.5b"
+# ========== 闸门控制HTTP接口 ==========
+GATE_OPEN_URL = "http://192.168.10.251:8085/RelayControl/Open"
+GATE_CLOSE_URL = "http://192.168.10.251:8085/RelayControl/Close"
 
 # ========== 控制参数 ==========
 HISTORY_LEN = 10
@@ -60,31 +57,15 @@ TARGET_WATER = 65
 
 
 def parse_water_data(raw_data) -> int:
-    """
-    解析WebSocket发来的JSON数据，提取液位值
-    Java格式: [[液位,浊度,震动,湿度,倾斜,泵状态],[预测值]]
-    """
+    """解析WebSocket发来的JSON数据，提取液位值"""
     try:
-        # WebSocket消息是字符串
         if isinstance(raw_data, bytes):
             raw_data = raw_data.decode('utf-8')
-
-        # 去掉首尾空格
         raw_data = raw_data.strip()
-
-        # 解析JSON
         data = json.loads(raw_data)
-
-        # 格式: [[106,2345,3456,4567,1,0],["预测值"]]
-        sensor_array = data[0]  # 第一个数组是传感器数据
-
-        # 液位是第一个元素
-        water_level = int(sensor_array[0])
-
-        return water_level
-
-    except (json.JSONDecodeError, IndexError, ValueError, TypeError) as e:
-        print(f"\n[⚠️] 数据解析失败: {e}, 原始数据: {raw_data[:100]}")
+        sensor_array = data[0]
+        return int(sensor_array[0])
+    except (json.JSONDecodeError, IndexError, ValueError, TypeError):
         return None
 
 
@@ -248,6 +229,7 @@ class DamBrain:
 
         current = self.water_history[-1]
 
+        # 硬规则兜底：高水位强制开闸
         if current >= 100:
             return 1
 
@@ -289,33 +271,43 @@ class DamBrain:
         return best_seq[0]
 
     def generate_explanation(self, water, level, action, prediction, cost, rate):
-        action_text = "开闸放水" if action == 1 else "关闸省水"
+        """模板引擎——稳定可靠，零延迟"""
 
-        prompt = f"""你是水坝AI的翻译官。用一句通俗的话（30字内）解释这个决定：
-水位{water}，{level}，变化速率{rate:.2f}/帧，预测未来{prediction}，选了{action_text}。
-直接给出解释："""
+        # 趋势判断
+        if rate > 1.0:
+            trend = "水位在快速上涨"
+        elif rate > 0.3:
+            trend = "水位在缓慢上涨"
+        elif rate < -1.0:
+            trend = "水位在快速下降"
+        elif rate < -0.3:
+            trend = "水位在缓慢下降"
+        else:
+            trend = "水位基本稳定"
 
-        try:
-            import ollama
-            response = ollama.chat(
-                model=OLLAMA_MODEL,
-                messages=[{'role': 'user', 'content': prompt}],
-                options={'temperature': 0.7, 'num_predict': 50}
-            )
-            return response['message']['content'].strip()
-        except Exception:
-            if action == 1 and rate > 1.0:
-                return "水位涨得太快，提前开闸放水，防止撞警戒线。"
-            elif action == 1 and water >= 110:
-                return "应急水位，安全第一，必须开闸把水位降下来。"
-            elif action == 1 and water >= 100:
-                return "水位偏高，先开一会儿闸，降到安全范围就停。"
-            elif action == 0 and level == "正常":
-                return "水位在安全范围，关闸省水，不用动。"
-            elif action == 0 and rate < 0:
-                return "水位本来就在降，没必要开闸浪费水。"
+        if action == 1:  # 开闸放水
+            if water >= 110:
+                return f"应急水位，安全第一，必须立即开闸放水把水位降下来。"
+            elif water >= 100:
+                return f"水位偏高且{trend}，提前开闸放水，防止进入应急状态。"
+            elif water >= 80:
+                return f"{trend}，趁还在预警区间先开闸放水，避免继续升高撞警戒线。"
             else:
-                return "综合安全、省水和设备保护，这是最好的选择。"
+                return f"虽然水位还在正常范围，但{trend}，预防性开闸放水。"
+
+        else:  # 关闸省水
+            if water <= 55:
+                return f"濒临死水位，必须关闸保住仅剩的水量，绝对不能放水。"
+            elif water <= 60:
+                return f"水位偏低，关闸蓄水，防止跌入濒死区间。"
+            elif rate < -0.5:
+                return f"水位在自然下降，不需要开闸浪费水，关闸等着就行。"
+            elif abs(rate) < 0.3:
+                return f"水位稳定在安全范围，关闸省水，无需任何操作。"
+            elif prediction <= WATER_NORMAL_HIGH:
+                return f"预测水位会自然回落到安全线内，关闸等待即可，不必额外放水。"
+            else:
+                return f"水位在安全范围内，综合省水和设备保护，关闸是最优选择。"
 
     def online_learn(self):
         if self.memory.size() < LEARN_BATCH_SIZE:
@@ -348,7 +340,7 @@ class DamBrain:
         print(f"   连接地址: {WS_URL}")
         print(f"   闸门控制: HTTP GET")
         print(f"   目标水位: {TARGET_WATER}")
-        print(f"   解释模型: {OLLAMA_MODEL}")
+        print(f"   解释引擎: 模板引擎（零延迟）")
         print(f"   数据格式: JSON数组 [[液位,...],[预测值]]")
         print(f"{'='*50}\n")
 
