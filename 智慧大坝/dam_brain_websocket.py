@@ -1,3 +1,7 @@
+"""
+dam_brain.py - 智能大脑（WebSocket + HTTP + Flask确认 + 开闸冷却期）
+开闸冷却期只阻止再次弹窗，不阻止关闸
+"""
 import asyncio
 import time
 import json
@@ -57,7 +61,9 @@ ADD_WATER_TO = 65
 TARGET_WATER = 65
 
 AUTO_CONFIRM_EMERGENCY = True
-REJECT_COOLDOWN = 30  # 拒绝后冷却时间（秒）
+REJECT_COOLDOWN = 30       # 拒绝后冷却时间（秒）
+OPEN_COOLDOWN = 30         # 开闸后冷却时间（秒），期间不弹新窗
+OPEN_HOLD_STEPS = 5        # 开闸后最少保持帧数，防止刚开就关
 
 
 def send_message(content, msg_type):
@@ -67,7 +73,6 @@ def send_message(content, msg_type):
         "content": content,
         "type": msg_type
     }
-
     thread = threading.Thread(
         target=do_send_message,
         args=(param,),
@@ -86,6 +91,8 @@ def do_send_message(param):
         print(f"消息成功发送，状态码{response.status_code}")
     except Exception as e:
         print(f"发送失败: {e}")
+
+
 def parse_water_data(raw_data) -> int:
     try:
         if isinstance(raw_data, bytes):
@@ -207,14 +214,21 @@ class DamBrain:
         self.last_action = -1
 
         # ===== 确认机制 =====
-        self.confirm_flag = 0            # 0=等待, 1=允许开闸
-        self.pending_open = False        # 是否正在等待确认
-        self.confirm_lock = False        # 确认锁：True时不再弹新窗
-        self.last_reject_time = 0        # 上次拒绝时间
+        self.confirm_flag = 0
+        self.pending_open = False
+        self.confirm_lock = False
+        self.last_reject_time = 0
         self.REJECT_COOLDOWN = REJECT_COOLDOWN
         self.pending_water = 0
         self.pending_level = ""
         self.pending_explanation = ""
+
+        # ===== 开闸后冷却机制 =====
+        self.last_open_time = 0
+        self.OPEN_COOLDOWN = OPEN_COOLDOWN
+        self.open_hold_steps = OPEN_HOLD_STEPS
+        self.open_hold_count = 0
+        self.gate_just_opened = False
 
     def send_action(self, action: int):
         if action == self.last_action:
@@ -343,10 +357,11 @@ class DamBrain:
                 return f"预测水位会自然回落到安全线内，关闸等待即可，不必额外放水。"
             else:
                 return f"水位在安全范围内，综合省水和设备保护，关闸是最优选择。"
-    #开闸确认请求发送函数
+
     def request_open_confirmation(self, water, level, explanation):
-        msg=f"警告：当前水位{water}，已达到{level}预警等级,AI回答{explanation},建议开闸"
-        send_message(content=msg,msg_type="PumpNotify")
+        """发送开闸确认请求"""
+        msg = f"警告：当前水位{water},AI建议开闸         请确认下游河道安全以及相关人员是否得到妥善安置"
+        send_message(content=msg, msg_type="PumpNotify")
 
     def online_learn(self):
         if self.memory.size() < LEARN_BATCH_SIZE:
@@ -380,9 +395,10 @@ class DamBrain:
         print(f"   闸门控制: HTTP GET")
         print(f"   目标水位: {TARGET_WATER}")
         print(f"   Flask接口: http://{FLASK_HOST}:{FLASK_PORT}")
-        print(f"   确认方式: POST /confirm_open")
+        print(f"   确认方式: GET /confirm_open")
         print(f"   应急水位: {'自动执行' if AUTO_CONFIRM_EMERGENCY else '也需确认'}")
-        print(f"   拒绝冷却: {REJECT_COOLDOWN}秒")
+        print(f"   拒绝冷却: {REJECT_COOLDOWN}秒 | 开闸冷却: {OPEN_COOLDOWN}秒")
+        print(f"   开闸保持: 最少{OPEN_HOLD_STEPS}帧（冷却期仅阻止弹窗，不阻止关闸）")
         print(f"{'='*50}\n")
 
         print(f"\n💧 请加水至 {ADD_WATER_TO} 左右")
@@ -423,10 +439,33 @@ class DamBrain:
                                 self.confirm_flag = 0
                                 self.pending_open = False
                                 self.confirm_lock = False
+
+                                # 设置开闸后冷却（只阻止弹窗，不阻止关闸）
+                                self.last_open_time = time.time()
+                                self.gate_just_opened = True
+                                self.open_hold_count = 0
                             else:
                                 level = get_level_name(water)
                                 print(f"\r[{time.strftime('%H:%M:%S')}] ⏳等待确认 | 水位:{water:.0f} {level} | 标志位:{self.confirm_flag}", end='', flush=True)
                             continue
+                        # ================================================
+
+                        # ===== 开闸后最少保持（只阻止立即关闸，不强制开闸）=====
+                        if self.gate_just_opened:
+                            self.open_hold_count += 1
+
+                            if self.open_hold_count < self.open_hold_steps:
+                                # 最少保持帧数内，维持当前状态不做决策
+                                self.water_history.append(water)
+                                self.action_history.append(1)
+                                self.current_action = 1
+                                level = get_level_name(water)
+                                print(f"\r[{time.strftime('%H:%M:%S')}] 🔓开闸保持({self.open_hold_count}/{self.open_hold_steps}) | 水位:{water:.0f} {level}", end='', flush=True)
+                                continue
+                            else:
+                                # 最少帧数到了，恢复AI决策，但冷却期内阻止弹新窗
+                                self.gate_just_opened = False
+                                print(f"\n   ✅ 开闸保持结束，恢复AI自主决策（冷却期{self.OPEN_COOLDOWN}秒内不弹新窗）")
                         # ================================================
 
                         # 检查是否需要加水
@@ -459,18 +498,21 @@ class DamBrain:
                         # ===== 开闸确认逻辑（防重复弹窗）=====
                         if action == 1 and self.last_action != 1:
                             if AUTO_CONFIRM_EMERGENCY and water >= WATER_EMERGENCY:
-                                # 应急水位，直接执行
-                                pass
+                                # 应急水位，直接执行，同时设置冷却
+                                self.last_open_time = time.time()
                             else:
                                 now = time.time()
 
                                 if self.confirm_lock:
-                                    # 已锁定，跳过
                                     action = 0
                                 elif now - self.last_reject_time < self.REJECT_COOLDOWN:
-                                    # 冷却期内
                                     remaining = int(self.REJECT_COOLDOWN - (now - self.last_reject_time))
-                                    print(f"\r[{time.strftime('%H:%M:%S')}] 🔒 冷却期 {remaining}秒 | 水位:{water:.0f} {get_level_name(water)}", end='', flush=True)
+                                    print(f"\r[{time.strftime('%H:%M:%S')}] 🔒 拒绝冷却 {remaining}秒 | 水位:{water:.0f} {get_level_name(water)}", end='', flush=True)
+                                    action = 0
+                                elif now - self.last_open_time < self.OPEN_COOLDOWN:
+                                    # 开闸冷却期内，AI仍想开闸，但阻止弹窗，直接保持关闸
+                                    remaining = int(self.OPEN_COOLDOWN - (now - self.last_open_time))
+                                    print(f"\r[{time.strftime('%H:%M:%S')}] 🔓开闸冷却 {remaining}秒 | 水位:{water:.0f} {get_level_name(water)}", end='', flush=True)
                                     action = 0
                                 else:
                                     # 触发确认弹窗
@@ -493,8 +535,8 @@ class DamBrain:
                                     print(f"⚠️  AI建议开闸，等待外部确认...")
                                     print(f"   水位: {water:.0f} [{self.pending_level}]")
                                     print(f"   原因: {self.pending_explanation}")
-                                    print(f"   POST /confirm_open → 确认开闸")
-                                    print(f"   POST /reject_open  → 拒绝开闸")
+                                    print(f"   GET /confirm_open → 确认开闸")
+                                    print(f"   GET /reject_open  → 拒绝开闸")
                                     print(f"{'='*50}")
 
                                     self.request_open_confirmation(water, self.pending_level, self.pending_explanation)
@@ -539,6 +581,13 @@ brain_instance = None
 
 app = Flask(__name__)
 
+@app.after_request
+def add_cors_headers(response):
+    """所有响应都加上跨域头"""
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
 
 @app.route('/status', methods=['GET'])
 def get_status():
@@ -560,10 +609,13 @@ def get_status():
         'avg_error': brain_instance.memory.get_average_error(),
         'reject_cooldown': brain_instance.REJECT_COOLDOWN,
         'last_reject_time': brain_instance.last_reject_time,
+        'open_cooldown': brain_instance.OPEN_COOLDOWN,
+        'last_open_time': brain_instance.last_open_time,
+        'gate_just_opened': brain_instance.gate_just_opened,
     })
 
 
-@app.route('/confirm_open', methods=['POST'])
+@app.route('/confirm_open', methods=['GET'])
 def confirm_open():
     """确认开闸"""
     if brain_instance is None:
@@ -583,7 +635,7 @@ def confirm_open():
     })
 
 
-@app.route('/reject_open', methods=['POST'])
+@app.route('/reject_open', methods=['GET'])
 def reject_open():
     """拒绝开闸"""
     if brain_instance is None:
@@ -615,10 +667,10 @@ if __name__ == '__main__':
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
     print(f"[✅] Flask接口已启动: http://0.0.0.0:{FLASK_PORT}")
-    print(f"   GET  /status       查看状态")
-    print(f"   POST /confirm_open 确认开闸")
-    print(f"   POST /reject_open  拒绝开闸")
-    print(f"   拒绝后 {REJECT_COOLDOWN} 秒内不再弹窗\n")
+    print(f"   GET /status       查看状态")
+    print(f"   GET /confirm_open 确认开闸")
+    print(f"   GET /reject_open  拒绝开闸")
+    print(f"   拒绝冷却: {REJECT_COOLDOWN}秒 | 开闸冷却: {OPEN_COOLDOWN}秒\n")
 
     try:
         asyncio.run(brain.run())
