@@ -1,3 +1,4 @@
-# ========== 大文件（模型、压缩包等）==========
 *.glb
 *.gltf
+apiUtils.js 
+application.properties
