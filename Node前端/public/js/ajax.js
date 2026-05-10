@@ -54,7 +54,7 @@ function manualToggle() {
 // 开启请求
 function turnOn() {
     const xhr = new XMLHttpRequest();
-    xhr.open('GET', window.apiUrls.WATER_CTL_OPEN_URL, true);
+    xhr.open('GET', "http://192.168.10.251:8085/RelayControl/Open", true);
     xhr.send();
     console.log("开启请求已发送");
     
@@ -66,7 +66,7 @@ function turnOn() {
 // 关闭请求
 function turnOff() {
     const xhr = new XMLHttpRequest();
-    xhr.open('GET', window.apiUrls.WATER_CTL_CLOSE_URL, true);
+    xhr.open('GET', "http://192.168.10.251:8085/RelayControl/Close", true);
     xhr.send();
     console.log("关闭请求已发送");
     

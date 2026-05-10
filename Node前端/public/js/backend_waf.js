@@ -115,7 +115,7 @@
                 </head>
                 <body>
                     <div class="warning-container">
-                        <h1>⚠️[智御安澜前端防护]页面加载失败</h1>
+                        <h1>⚠️[智御安澜前端防护]安全检测失败</h1>
                         <p>检测到未知脚本加载，系统已阻止访问。</p>
                         <p>错误代码：<span class="code">SEC_HOOK_DETECTED</span></p>
                     </div>

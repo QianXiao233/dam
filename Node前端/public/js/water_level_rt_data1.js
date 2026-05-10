@@ -25,7 +25,7 @@ socket.onmessage = function (event) {
     };
     window.updatewaterLevelChart();
     window.updatewatermodel();
-    //window.waterController();
+    window.waterController();
     window.receiveWarningValue();
     console.log("数据接收，已成功处理！");
 

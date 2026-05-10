@@ -1,5 +1,5 @@
 """
-train_model.py - 训练世界模型
+train_model.py - 训练世界模型（支持3种动作：0=关闸, 1=开闸, 2=加水）
 输入: training_data.npy
 输出: world_model.pt
 """
@@ -8,8 +8,8 @@ import torch
 import torch.nn as nn
 
 # ========== 配置 ==========
-DATA_FILE = 'training_data.npy'
-MODEL_FILE = 'world_model.pt'
+DATA_FILE = 'training_data_combined.npy'
+MODEL_FILE = 'world_model_bt.pt'
 HISTORY_LEN = 10
 HIDDEN_SIZE = 64
 NUM_LAYERS = 2
@@ -17,22 +17,13 @@ EPOCHS = 300
 LEARNING_RATE = 0.001
 TRAIN_SPLIT = 0.8
 
-# ========== 水位参数(x2版本) ==========
-WATER_DEAD = 50
-WATER_CRITICAL = 55
-WATER_NORMAL_LOW = 45
-WATER_NORMAL_HIGH = 80
-WATER_WARNING = 80
-WATER_WARNING_HIGH = 110
-WATER_EMERGENCY = 110
-
 
 class WorldModel(nn.Module):
-    """世界模型：学习水位变化规律"""
+    """世界模型：学习水位变化规律（支持3种动作类型）"""
     def __init__(self, history_len=10, hidden_size=64, num_layers=2):
         super().__init__()
         self.lstm = nn.LSTM(
-            input_size=2,          # [水位, 闸门状态]
+            input_size=2,          # [水位, 动作类型]
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True
@@ -48,12 +39,11 @@ class WorldModel(nn.Module):
         lstm_out, _ = self.lstm(x)
         return self.output_head(lstm_out[:, -1, :])
 
-    def predict_sequence(self, water_history, action_history, future_actions, steps):
-        """预测未来水位序列（规划器用）"""
+    def predict_sequence(self, water_hist, action_hist, future_actions, steps):
         self.eval()
         preds = []
-        cur_w = list(water_history)
-        cur_a = list(action_history)
+        cur_w = list(water_hist)
+        cur_a = list(action_hist)
         with torch.no_grad():
             for i in range(steps):
                 w = torch.FloatTensor([cur_w])
@@ -74,6 +64,13 @@ def train():
     print(f"\n[1/4] 加载训练数据...")
     data = np.load(DATA_FILE, allow_pickle=True)
     print(f"   样本总数: {len(data)}")
+
+    # 统计各动作类型
+    action_types = [d['action_history'][0] for d in data]
+    close_count = action_types.count(0)
+    open_count = action_types.count(1)
+    fill_count = action_types.count(2)
+    print(f"   关闸样本: {close_count} | 开闸样本: {open_count} | 加水样本: {fill_count}")
 
     # 2. 准备输入输出
     print(f"\n[2/4] 准备训练数据...")
@@ -134,39 +131,41 @@ def train():
                 'history_len': HISTORY_LEN,
                 'hidden_size': HIDDEN_SIZE,
                 'num_layers': NUM_LAYERS,
-                'water_params': {
-                    'dead': WATER_DEAD,
-                    'critical': WATER_CRITICAL,
-                    'normal_low': WATER_NORMAL_LOW,
-                    'normal_high': WATER_NORMAL_HIGH,
-                    'warning': WATER_WARNING,
-                    'warning_high': WATER_WARNING_HIGH,
-                    'emergency': WATER_EMERGENCY,
-                }
             }, MODEL_FILE)
 
         if epoch % 20 == 0:
             print(f"   Epoch {epoch:3d}/{EPOCHS} | 训练损失: {loss.item():.4f} | 验证损失: {val_loss.item():.4f}")
 
-    # 加载最佳模型
-    best = torch.load(MODEL_FILE)
-    model.load_state_dict(best['model_state_dict'])
-
     # 测试预测精度
+    best = torch.load(MODEL_FILE, weights_only=False)
+    model.load_state_dict(best['model_state_dict'])
     model.eval()
+
     with torch.no_grad():
-        test_pred = model(val_w[:10], val_a[:10])
-        # 反归一化
+        test_pred = model(val_w[:20], val_a[:20])
         test_pred_real = test_pred * water_std + water_mean
-        test_real = val_y[:10] * water_std + water_mean
+        test_real = val_y[:20] * water_std + water_mean
         error = torch.abs(test_pred_real - test_real).mean().item()
 
     print(f"\n{'='*60}")
     print(f"✅ 训练完成！")
     print(f"   最佳验证损失: {best_val_loss:.4f} (Epoch {best_epoch})")
-    print(f"   平均预测误差: {error:.1f}（反归一化后）")
+    print(f"   平均预测误差: {error:.1f}")
     print(f"   💾 模型已保存至 {MODEL_FILE}")
     print(f"{'='*60}")
+
+    # 分别测试各动作类型的预测误差
+    for action_type, name in [(0, "关闸"), (1, "开闸"), (2, "加水")]:
+        indices = [i for i, a in enumerate(action_types) if a == action_type]
+        if len(indices) >= 5:
+            sample_idx = indices[:5]
+            w = X_water_norm[sample_idx]
+            a = X_action[sample_idx]
+            y = Y[sample_idx]
+            with torch.no_grad():
+                p = model(w, a)
+                err = torch.abs(p - y).mean().item() * water_std
+            print(f"   {name}预测误差: {err:.1f}")
 
     return model, water_mean, water_std
 
