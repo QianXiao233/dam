@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 @Component
 public class WebSocketService extends TextWebSocketHandler {
     private int[] cachedData = new int[6];
@@ -47,12 +50,15 @@ public class WebSocketService extends TextWebSocketHandler {
         PythonProt pythonProt = new PythonProt();
         String predict = pythonProt.predict(array);
         String combinedData = "["+resultData+","+predict+"]";
+        ExecutorService executor = Executors.newFixedThreadPool(10);
         for (WebSocketSession client : clients) {
-            try {
-                client.sendMessage(new TextMessage(combinedData));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            executor.submit(() -> {
+                try {
+                    client.sendMessage(new TextMessage(combinedData));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
         }
 
     }
