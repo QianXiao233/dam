@@ -64,6 +64,8 @@ function handlePumpNotify(message) {
 
 // 重写确认开闸函数
 window.confirmOpen = async function() {
+    hidenotice();
+    canShowPumpNotify = true;
     try {
         const response = await fetch('http://192.168.10.247:5001/confirm_open', {
             method: 'GET',
@@ -77,9 +79,6 @@ window.confirmOpen = async function() {
             window.currentPumpNotifyId = null;
         }
         
-        // 隐藏弹窗
-        hidenotice();
-        canShowPumpNotify = true;
         
     } catch (error) {
         console.error('确认开闸失败:', error);
@@ -88,6 +87,8 @@ window.confirmOpen = async function() {
 
 // 重写拒绝开闸函数
 window.rejectOpen = async function() {
+    hidenotice();
+    canShowPumpNotify = true;
     try {
         const response = await fetch('http://192.168.10.247:5001/reject_open', {
             method: 'GET',
@@ -101,9 +102,6 @@ window.rejectOpen = async function() {
             window.currentPumpNotifyId = null;
         }
         
-        // 隐藏弹窗
-        hidenotice();
-        canShowPumpNotify = true;
         
     } catch (error) {
         console.error('拒绝开闸失败:', error);
