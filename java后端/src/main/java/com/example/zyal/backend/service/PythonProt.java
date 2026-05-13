@@ -12,7 +12,7 @@ import java.util.Arrays;
 
 public class PythonProt {
     public static String[] Bp(String array) {  // 修改参数类型为String[]
-        String address = "http://192.168.10.247:5000/predict";
+        String address = "http://192.168.10.251:5000/predict";
         //String address = "http://127.0.0.1:5000/predict";
         try {
             // 创建 JSON 请求
