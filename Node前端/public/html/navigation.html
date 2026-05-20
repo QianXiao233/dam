@@ -288,15 +288,24 @@
             desc: "预报 · 预警 · 预演 · 预案 | 水位趋势与防洪调度",
             tag: "防洪核心",
             url: "forecast.html"
+        },
+        {
+            id: "waf",
+            title: "WAF 防火墙管理",
+            icon: "🛡️",
+            desc: "IP/MAC 识别 · 黑白名单规则 · 流量监控",
+            tag: "安全防护",
+            url: "waf.html",
+            requiredLevel: 0   // 仅 level 0 管理员可见
         }
     ];
 
-    // 权限映射
+    // 权限映射 (WAF管理仅管理员可访问)
     const rolePermissions = {
         3: { canAccess: [0] },
         2: { canAccess: [1] },
         1: { canAccess: [2] },
-        0: { canAccess: [0, 1, 2] }
+        0: { canAccess: [0, 1, 2, 3] }
     };
 
     // 主函数：所有逻辑都在这里
@@ -333,9 +342,13 @@
             updateTime();
             setInterval(updateTime, 1000);
             
-            // 生成卡片
+            // 生成卡片（根据 requiredLevel 过滤不可见卡片）
             const grid = document.getElementById('cardGrid');
             cards.forEach((card, idx) => {
+                // requiredLevel 不为 undefined 且不匹配当前用户等级 → 直接隐藏
+                if (card.requiredLevel !== undefined && card.requiredLevel !== level) {
+                    return;
+                }
                 const isAllowed = accessibleIndices.includes(idx);
                 const cardDiv = document.createElement('div');
                 cardDiv.className = 'card';
