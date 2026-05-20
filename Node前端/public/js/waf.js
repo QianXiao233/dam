@@ -124,7 +124,7 @@ function renderRules(rules) {
           ${rule.type === 'allow' ? '✅ 放行' : '🚫 拦截'}
         </span>
       </td>
-      <td><span class="tag ${rule.target === 'ip' ? 'tag-ip' : 'tag-mac'}">${rule.target === 'ip' ? 'IP' : 'MAC'}</span></td>
+
       <td style="font-family:monospace;font-size:13px;">${rule.value}</td>
       <td style="color:var(--text-secondary);font-size:12px;">${rule.comment || '-'}</td>
       <td style="text-align:center;">${rule.hitCount || 0}</td>
@@ -230,7 +230,7 @@ async function quickBlockIP(ip) {
   const comment = prompt(`将 ${ip} 加入黑名单，输入备注原因（可选）：`);
   if (comment === null) return;
   try {
-    await apiPost('/rules', { type: 'block', target: 'ip', value: ip, comment: comment || '手动拦截' });
+    await apiPost('/rules', { type: 'block', value: ip, comment: comment || '手动拦截' });
     showToast(`已拦截 ${ip}`, 'success');
     loadRules();
     loadStats();
@@ -244,7 +244,7 @@ async function quickAllowIP(ip) {
   const comment = prompt(`将 ${ip} 加入白名单，输入备注原因（可选）：`);
   if (comment === null) return;
   try {
-    await apiPost('/rules', { type: 'allow', target: 'ip', value: ip, comment: comment || '手动放行' });
+    await apiPost('/rules', { type: 'allow', value: ip, comment: comment || '手动放行' });
     showToast(`已放行 ${ip}`, 'success');
     loadRules();
     loadStats();
@@ -342,7 +342,7 @@ function toggleRuleValueHint() {
   const target = document.getElementById('ruleTarget').value;
   const label = document.getElementById('ruleValueLabel');
   const hint = document.getElementById('ruleValueHint');
-  if (target === 'ip') {
+  if (false) {
     label.textContent = 'IP 地址';
     document.getElementById('ruleValue').placeholder = '例如: 192.168.1.100';
     hint.textContent = '支持完整 IP 地址';
