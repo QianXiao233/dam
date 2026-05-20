@@ -1,6 +1,3 @@
-"""
-dam_brain.py - 智能大脑（WebSocket客户端版 + 应急强制开闸 + 修正话术）
-"""
 import asyncio
 import time
 import json
@@ -26,8 +23,8 @@ FLASK_PORT = 5001
 
 # ========== 控制参数 ==========
 HISTORY_LEN = 10
-PLANNING_HORIZON = 12
-NUM_CANDIDATES = 256
+PLANNING_HORIZON = 8
+NUM_CANDIDATES = 64
 
 # ========== 在线学习参数 ==========
 LEARN_EVERY_N_STEPS = 50
@@ -117,6 +114,10 @@ def do_send_message(param):
 class WorldModel(nn.Module):
     def __init__(self, history_len=10, hidden_size=64, num_layers=2):
         super().__init__()
+        self.history_len = history_len
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+
         self.lstm = nn.LSTM(input_size=2, hidden_size=hidden_size,
                             num_layers=num_layers, batch_first=True)
         self.output_head = nn.Sequential(
@@ -131,18 +132,36 @@ class WorldModel(nn.Module):
         return self.output_head(lstm_out[:, -1, :])
 
     def predict_sequence(self, water_hist, action_hist, future_actions, steps):
+        """预测未来水位序列（支持GPU）"""
         self.eval()
         preds = []
-        cur_w = list(water_hist)
-        cur_a = list(action_hist)
+
+        # 移动到CPU进行处理（序列预测需要逐步进行）
+        if torch.is_tensor(water_hist):
+            cur_w = water_hist.cpu().numpy().tolist()[0]
+        else:
+            cur_w = water_hist
+
+        if torch.is_tensor(action_hist):
+            cur_a = action_hist.cpu().numpy().tolist()[0]
+        else:
+            cur_a = action_hist
+
+        if torch.is_tensor(future_actions):
+            future = future_actions.cpu().numpy().tolist()[0]
+        else:
+            future = future_actions
+
+        device = next(self.parameters()).device
+
         with torch.no_grad():
             for i in range(steps):
-                w = torch.FloatTensor([cur_w])
-                a = torch.FloatTensor([cur_a])
-                nw = self.forward(w, a).item()
+                w_tensor = torch.FloatTensor([cur_w]).to(device)
+                a_tensor = torch.FloatTensor([cur_a]).to(device)
+                nw = self.forward(w_tensor, a_tensor).item()
                 preds.append(nw)
                 cur_w = cur_w[1:] + [nw]
-                cur_a = cur_a[1:] + [future_actions[i]]
+                cur_a = cur_a[1:] + [future[i]]
         return preds
 
 
@@ -180,10 +199,27 @@ class ExperienceMemory:
 
 
 class DamBrain:
-    def __init__(self, model_path='world_model.pt'):
-        ckpt = torch.load(model_path, weights_only=False)
+    def __init__(self, model_path='world_model_improved.pt'):
+        # 检测并设置计算设备
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        print(f"\n{'='*50}")
+        print(f"🔧 计算设备配置")
+        print(f"   使用设备: {self.device}")
+        if torch.cuda.is_available():
+            print(f"   显卡型号: {torch.cuda.get_device_name(0)}")
+            print(f"   显存容量: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
+            print(f"   CUDA版本: {torch.version.cuda}")
+        else:
+            print(f"   💡 提示: 未检测到GPU，使用CPU计算")
+            print(f"   如需GPU加速，请安装CUDA版PyTorch:")
+            print(f"   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118")
+        print(f"{'='*50}\n")
+
+        # 加载模型（使用map_location确保兼容性）
+        ckpt = torch.load(model_path, weights_only=False, map_location=self.device)
         self.model = WorldModel(ckpt['history_len'], ckpt['hidden_size'], ckpt['num_layers'])
         self.model.load_state_dict(ckpt['model_state_dict'])
+        self.model = self.model.to(self.device)
         self.water_mean = ckpt['water_mean']
         self.water_std = ckpt['water_std']
 
@@ -230,23 +266,44 @@ class DamBrain:
             print(f"\n[⚠️] 闸门控制失败: {e}")
 
     def predict_future(self, action_seq):
+        """预测未来水位序列（GPU加速）"""
+        # 标准化水位历史
         water_norm = [(w - self.water_mean) / self.water_std for w in self.water_history]
-        preds_norm = self.model.predict_sequence(water_norm, list(self.action_history), action_seq, len(action_seq))
+
+        # 转换为GPU张量
+        water_tensor = torch.FloatTensor([water_norm]).to(self.device)
+        action_hist_tensor = torch.FloatTensor([list(self.action_history)]).to(self.device)
+        action_seq_tensor = torch.FloatTensor([action_seq]).to(self.device)
+
+        # 预测
+        preds_norm = self.model.predict_sequence(
+            water_tensor, action_hist_tensor, action_seq_tensor, len(action_seq)
+        )
+
+        # 反标准化
         return [p * self.water_std + self.water_mean for p in preds_norm]
 
     def predict_next(self):
+        """预测下一个水位"""
         if len(self.water_history) < HISTORY_LEN:
             return None
+
+        # 标准化
         water_norm = [(w - self.water_mean) / self.water_std for w in self.water_history]
+
         self.model.eval()
         with torch.no_grad():
-            w = torch.FloatTensor([water_norm])
-            a = torch.FloatTensor([list(self.action_history)])
+            w = torch.FloatTensor([water_norm]).to(self.device)
+            a = torch.FloatTensor([list(self.action_history)]).to(self.device)
             pred = self.model(w, a).item()
+
         return pred * self.water_std + self.water_mean
 
     def compute_cost(self, predicted_waters, action_seq):
+        """计算代价函数"""
         total = 0.0
+
+        # 计算水位变化率
         if len(self.water_history) >= 5:
             recent = list(self.water_history)[-5:]
             rate = (recent[-1] - recent[0]) / 5
@@ -270,20 +327,27 @@ class DamBrain:
                 else:
                     total += COST_WARNING * 0.5 * ((water - WATER_WARNING) / (WATER_WARNING_HIGH - WATER_WARNING))
 
+        # 放水浪费代价
         total += COST_WASTE * sum(action_seq)
+
+        # 开关切换代价
         switches = sum(1 for i in range(1, len(action_seq)) if action_seq[i] != action_seq[i-1])
         total += COST_SWITCH * switches
+
         return total
 
     def deep_think(self):
+        """深度思考 - 选择最优动作（GPU加速批量预测）"""
         if len(self.water_history) < HISTORY_LEN:
             return 0
 
         current = self.water_history[-1]
 
+        # 应急水位强制开闸
         if current >= WATER_EMERGENCY:
             return 1
 
+        # 检查是否需要预防性开闸
         closed_pred = self.predict_future([0] * PLANNING_HORIZON)
         if closed_pred[-1] - current > 2:
             if current > WATER_CRITICAL:
@@ -291,21 +355,29 @@ class DamBrain:
 
         self.think_count += 1
 
+        # 生成候选动作序列
         candidates = []
         for _ in range(NUM_CANDIDATES):
             candidates.append(np.random.randint(0, 2, PLANNING_HORIZON).tolist())
-        candidates.append([0] * PLANNING_HORIZON)
+        candidates.append([0] * PLANNING_HORIZON)  # 全关闸作为基准
 
+        # 批量预测（GPU加速）
         best_seq = None
         best_cost = float('inf')
 
-        for seq in candidates:
-            pred = self.predict_future(seq)
-            cost = self.compute_cost(pred, seq)
-            if cost < best_cost:
-                best_cost = cost
-                best_seq = seq
+        # 可选：批量处理以充分利用GPU
+        batch_size = 32  # 每次处理32个候选序列
+        for i in range(0, len(candidates), batch_size):
+            batch_candidates = candidates[i:i+batch_size]
 
+            for seq in batch_candidates:
+                pred = self.predict_future(seq)
+                cost = self.compute_cost(pred, seq)
+                if cost < best_cost:
+                    best_cost = cost
+                    best_seq = seq
+
+        # 定期输出思考日志
         if self.think_count % 10 == 0:
             current = self.water_history[-1]
             final_pred = self.predict_future(best_seq)[-1]
@@ -327,6 +399,7 @@ class DamBrain:
         return best_seq[0]
 
     def generate_explanation(self, water, level, action, prediction, cost, rate):
+        """生成决策解释"""
         if rate > 1.0:
             trend = "水位在快速上涨"
         elif rate > 0.3:
@@ -362,32 +435,44 @@ class DamBrain:
                 return f"水位在安全范围内，综合省水和设备保护，关闸是最优选择。"
 
     def request_open_confirmation(self, water, level, explanation):
+        """请求开闸确认"""
         msg = f"警告：当前水位{water}，已达到{level}预警等级，AI回答{explanation}，建议开闸"
         send_message(content=msg, msg_type="PumpNotify")
 
     def online_learn(self):
+        """在线学习（GPU加速）"""
         if self.memory.size() < LEARN_BATCH_SIZE:
             return
+
         self.learn_count += 1
         print(f"\n📚 [在线学习 #{self.learn_count}]")
+
         batch = self.memory.sample_batch(LEARN_BATCH_SIZE)
         if batch is None:
             return
+
         water_batch, action_batch, next_batch = batch
-        water_norm = (water_batch - self.water_mean) / self.water_std
-        next_norm = (next_batch - self.water_mean) / self.water_std
+
+        # 移动到GPU并标准化
+        water_norm = ((water_batch - self.water_mean) / self.water_std).to(self.device)
+        action_batch = action_batch.to(self.device)
+        next_norm = ((next_batch - self.water_mean) / self.water_std).to(self.device)
+
+        # 训练
         self.model.train()
         for _ in range(LEARN_EPOCHS):
             self.optimizer.zero_grad()
             loss = self.criterion(self.model(water_norm, action_batch), next_norm)
             loss.backward()
             self.optimizer.step()
+
         self.model.eval()
         print(f"   ✅ 完成 | 误差:{self.memory.get_average_error():.2f}")
 
     async def run(self):
+        """主运行循环"""
         print(f"\n{'='*50}")
-        print(f"🧠 智能大脑启动（WebSocket客户端版）")
+        print(f"🧠 智能大脑启动（WebSocket客户端版 + GPU加速）")
         print(f"   连接地址: {WS_URL}")
         print(f"   闸门控制: HTTP GET")
         print(f"   目标水位: {TARGET_WATER}")
@@ -410,6 +495,7 @@ class DamBrain:
                         if not is_valid_water(water):
                             continue
 
+                        # 初始化历史数据
                         if len(self.water_history) < HISTORY_LEN:
                             self.water_history.append(water)
                             self.action_history.append(0)
@@ -421,6 +507,7 @@ class DamBrain:
                                 print(f"⏳ 开始运行...\n")
                             continue
 
+                        # 处理等待确认状态
                         if self.pending_open:
                             self.water_history.append(water)
                             self.action_history.append(self.current_action)
@@ -439,6 +526,7 @@ class DamBrain:
                                 print(f"\r[{time.strftime('%H:%M:%S')}] ⏳等待确认 | 水位:{water:.0f} {level}", end='', flush=True)
                             continue
 
+                        # 开闸保持逻辑
                         if self.gate_just_opened:
                             self.open_hold_count += 1
                             if self.open_hold_count < self.open_hold_steps:
@@ -452,6 +540,7 @@ class DamBrain:
                                 self.gate_just_opened = False
                                 print(f"\n   ✅ 开闸保持结束，恢复AI自主决策")
 
+                        # 加水循环
                         if water <= ADD_WATER_AT:
                             self.water_cycles += 1
                             self.send_action(0)
@@ -465,14 +554,18 @@ class DamBrain:
                             print(f"[✅] 请开始加水，系统继续监控...\n")
                             continue
 
+                        # 记录预测误差
                         if self.last_prediction is not None:
                             self.memory.add_error(self.last_prediction, water)
 
+                        # 存储经验
                         if len(self.water_history) == HISTORY_LEN:
                             self.memory.add(self.water_history, self.action_history, water)
 
+                        # AI决策
                         action = self.deep_think()
 
+                        # 开闸确认逻辑
                         if action == 1 and self.last_action != 1:
                             now = time.time()
                             if self.confirm_lock:
@@ -491,12 +584,15 @@ class DamBrain:
                                 self.confirm_flag = 0
                                 self.pending_water = water
                                 self.pending_level = get_level_name(water)
+
                                 if len(self.water_history) >= 5:
                                     recent = list(self.water_history)[-5:]
                                     rate = (recent[-1] - recent[0]) / 5
                                 else:
                                     rate = 0
+
                                 self.pending_explanation = self.generate_explanation(water, self.pending_level, 1, 0, 0, rate)
+
                                 print(f"\n{'='*50}")
                                 print(f"⚠️  AI建议开闸，等待外部确认...")
                                 print(f"   水位: {water:.0f} [{self.pending_level}]")
@@ -504,12 +600,14 @@ class DamBrain:
                                 print(f"   GET /confirm_open → 确认开闸")
                                 print(f"   GET /reject_open  → 拒绝开闸")
                                 print(f"{'='*50}")
+
                                 self.request_open_confirmation(water, self.pending_level, self.pending_explanation)
                                 self.water_history.append(water)
                                 self.action_history.append(self.current_action)
                                 self.step_count += 1
                                 continue
 
+                        # 执行动作
                         self.current_action = action
                         self.send_action(action)
                         self.water_history.append(water)
@@ -517,9 +615,11 @@ class DamBrain:
                         self.step_count += 1
                         self.last_prediction = self.predict_next()
 
+                        # 在线学习
                         if self.step_count % LEARN_EVERY_N_STEPS == 0 and self.step_count > 0:
                             self.online_learn()
 
+                        # 输出状态
                         level = get_level_name(water)
                         act_str = "开🔓" if action == 1 else "关🔒"
                         err = self.memory.get_average_error()
@@ -550,6 +650,7 @@ def add_cors_headers(response):
 def get_status():
     if brain_instance is None:
         return jsonify({'error': '大脑未启动'}), 500
+
     return jsonify({
         'pending_open': brain_instance.pending_open,
         'confirm_flag': brain_instance.confirm_flag,
@@ -563,6 +664,8 @@ def get_status():
         'avg_error': brain_instance.memory.get_average_error(),
         'open_cooldown': brain_instance.OPEN_COOLDOWN,
         'last_open_time': brain_instance.last_open_time,
+        'device': str(brain_instance.device),
+        'gpu_available': torch.cuda.is_available(),
     })
 
 
@@ -570,8 +673,10 @@ def get_status():
 def confirm_open():
     if brain_instance is None:
         return jsonify({'error': '大脑未启动'}), 500
+
     if not brain_instance.pending_open:
         return jsonify({'status': 'no_pending', 'message': '当前没有待确认的开闸请求'}), 200
+
     brain_instance.confirm_flag = 1
     print(f"\n   🔔 Flask收到确认信号，即将开闸")
     return jsonify({'status': 'confirmed', 'message': '开闸已确认，正在执行'})
@@ -581,6 +686,7 @@ def confirm_open():
 def reject_open():
     if brain_instance is None:
         return jsonify({'error': '大脑未启动'}), 500
+
     brain_instance.pending_open = False
     brain_instance.confirm_lock = False
     brain_instance.confirm_flag = 0
@@ -594,17 +700,33 @@ def run_flask():
 
 
 if __name__ == '__main__':
+    print(f"\n🔍 系统检测")
+    print(f"   PyTorch版本: {torch.__version__}")
+    print(f"   CUDA可用: {torch.cuda.is_available()}")
+    if torch.cuda.is_available():
+        print(f"   CUDA版本: {torch.version.cuda}")
+        print(f"   显卡数量: {torch.cuda.device_count()}")
+        for i in range(torch.cuda.device_count()):
+            print(f"   显卡{i}: {torch.cuda.get_device_name(i)}")
+    print()
+
+    # 启动大脑
     brain = DamBrain(model_path='world_model_improved.pt')
     brain_instance = brain
 
+    # 启动Flask线程
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
     print(f"[✅] Flask接口已启动: http://0.0.0.0:{FLASK_PORT}")
-    print(f"   GET /status       查看状态")
+    print(f"   GET /status       查看状态（包含GPU信息）")
     print(f"   GET /confirm_open 确认开闸")
     print(f"   GET /reject_open  拒绝开闸\n")
 
+    # 运行主程序
     try:
         asyncio.run(brain.run())
     except KeyboardInterrupt:
-        print(f"\n\n⏹️ 停止")
+        print(f"\n\n⏹️ 停止运行")
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()  # 清理GPU缓存
+            print(f"✅ GPU缓存已清理")

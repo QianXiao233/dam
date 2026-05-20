@@ -604,13 +604,6 @@
       </div>
     </div>
 
-    <div class="modal-overlay" id="infoModal">
-      <div class="modal-content">
-        <div class="modal-icon">⚠️</div>
-        <h3 class="modal-title">水位预测预警</h3>
-        <p class="modal-message" id="warn_info">此处插入预警信息</p>
-      </div>
-    </div>
     <div id="webgl"></div>
     <div id="container">
       <div id="per"></div>
@@ -923,36 +916,48 @@
         </div>
       </div>
 
-      <div
-        class="left-radio"
-        style="position: absolute; top: 65%; left: 2%; width: 96%"
-      >
+      <!-- ========= AI 智能大脑状态面板（替代预演） ========= -->
+      <div class="left-radio" style="position: absolute; top: 65%; left: 2%; width: 96%">
         <div class="panel-header">
           <div class="panel-icon"></div>
-          <div class="panel-title">预演</div>
-          <div class="panel-subtitle">Rehearsal</div>
+          <div class="panel-title">智能大脑</div>
+          <div class="panel-subtitle">AI Brain</div>
         </div>
       </div>
-      <div>
-        <p
-          style="width: 90%; position: absolute; top: 69%; height: 2%"
-          class="videoFont"
-        >
-          &nbsp;&nbsp;水库调度转移
-        </p>
-        <video
-          muted
-          src="/video/调度.mp4"
-          style="
-            width: 100%;
-            position: absolute;
-            top: 69%;
-            height: 14.5%;
-            left: 0%;
-          "
-          class="video"
-          data-index="3"
-        ></video>
+      <div class="brain-status-panel" id="brainStatusPanel" style="position: absolute; top: 69%; left: 2%; width: 96%; height: 16%">
+        <div class="brain-header">
+          <span class="brain-title">状态</span>
+          <span class="brain-status-badge offline" id="brainStatusBadge">离线</span>
+        </div>
+        <div class="brain-grid">
+          <div class="brain-item">
+            <span class="brain-item-label">当前动作</span>
+            <span class="brain-item-value" id="brainCurrentAction">--</span>
+          </div>
+          <div class="brain-item">
+            <span class="brain-item-label">当前水位</span>
+            <span class="brain-item-value" id="brainWaterLevel">--</span>
+          </div>
+          <div class="brain-item">
+            <span class="brain-item-label">预测误差</span>
+            <span class="brain-item-value" id="brainAvgError">--</span>
+          </div>
+          <div class="brain-item">
+            <span class="brain-item-label">运行步数</span>
+            <span class="brain-item-value" id="brainStepCount">--</span>
+          </div>
+          <div class="brain-item">
+            <span class="brain-item-label">加水轮次</span>
+            <span class="brain-item-value" id="brainWaterCycles">--</span>
+          </div>
+          <div class="brain-item">
+            <span class="brain-item-label">计算设备</span>
+            <span class="brain-item-value" id="brainDevice">--</span>
+          </div>
+        </div>
+        <div class="brain-error-bar">
+          <div class="brain-error-fill" id="brainErrorFill" style="width: 0%"></div>
+        </div>
       </div>
     </div>
 
@@ -1732,6 +1737,127 @@ function hidenotice() {
   <script src="/js/water_level_rt_chart copy.js"></script>
   <script src="/js/warning1.js"></script>
   <script src="/js/TTS.js"></script>
-  <script src="/js/water_predict_warning.js"></script>
+  <!-- <script src="/js/water_predict_warning.js"></script> -->
   <script src="/js/update_time.js"></script>
+
+<!-- ========= AI 智能大脑状态轮询 ========= -->
+<script>
+(function() {
+    var BRAIN_STATUS_URL = 'http://192.168.10.247:5001/status';
+    var BRAIN_POLL_INTERVAL = 3000; // 3秒轮询
+    var brainTimer = null;
+
+    // 获取水位等级
+    function getWaterLevelName(water) {
+        if (water === null || water === undefined) return '--';
+        if (water <= 50) return { name: '死水位', cls: 'danger' };
+        if (water <= 55) return { name: '濒死', cls: 'danger' };
+        if (water <= 80) return { name: '正常', cls: 'safe' };
+        if (water <= 110) return { name: '预警', cls: 'warning' };
+        return { name: '应急', cls: 'danger' };
+    }
+
+    // 更新面板
+    function updateBrainStatus(data) {
+        var badge = document.getElementById('brainStatusBadge');
+        var actionEl = document.getElementById('brainCurrentAction');
+        var waterEl = document.getElementById('brainWaterLevel');
+        var errorEl = document.getElementById('brainAvgError');
+        var stepEl = document.getElementById('brainStepCount');
+        var cycleEl = document.getElementById('brainWaterCycles');
+        var deviceEl = document.getElementById('brainDevice');
+        var errorFill = document.getElementById('brainErrorFill');
+
+        if (!actionEl) return; // 面板不存在
+
+        // 状态徽章
+        badge.textContent = '在线';
+        badge.className = 'brain-status-badge online';
+
+        // 当前动作
+        if (data.current_action) {
+            actionEl.textContent = data.current_action;
+            actionEl.className = 'brain-item-value' + (data.current_action === '开闸' ? ' active-open' : ' active-close');
+        }
+
+        // 当前水位
+        if (data.current_water !== null && data.current_water !== undefined) {
+            var level = getWaterLevelName(data.current_water);
+            waterEl.textContent = data.current_water.toFixed(1) + 'm (' + level.name + ')';
+            waterEl.className = 'brain-item-value ' + level.cls;
+        }
+
+        // 预测误差
+        if (data.avg_error !== null && data.avg_error !== undefined) {
+            errorEl.textContent = data.avg_error.toFixed(2);
+            // 误差条：0-10 映射到 0-100%
+            var pct = Math.min(data.avg_error / 10 * 100, 100);
+            errorFill.style.width = pct + '%';
+        }
+
+        // 运行步数
+        stepEl.textContent = data.step_count !== undefined ? data.step_count : '--';
+
+        // 加水轮次
+        cycleEl.textContent = data.water_cycles !== undefined ? data.water_cycles : '--';
+
+        // 计算设备
+        deviceEl.textContent = data.device || (data.gpu_available ? 'GPU' : 'CPU');
+    }
+
+    // 标记离线
+    function setOffline() {
+        var badge = document.getElementById('brainStatusBadge');
+        var actionEl = document.getElementById('brainCurrentAction');
+        var errorFill = document.getElementById('brainErrorFill');
+        if (badge) {
+            badge.textContent = '离线';
+            badge.className = 'brain-status-badge offline';
+        }
+        if (actionEl && !actionEl.textContent) {
+            actionEl.textContent = '--';
+        }
+        if (errorFill) {
+            errorFill.style.width = '0%';
+        }
+    }
+
+    // 轮询函数
+    function pollBrainStatus() {
+        fetch(BRAIN_STATUS_URL, {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-cache'
+        })
+        .then(function(response) {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.json();
+        })
+        .then(function(data) {
+            updateBrainStatus(data);
+        })
+        .catch(function(err) {
+            console.warn('[AI大脑] 状态获取失败:', err.message);
+            setOffline();
+        });
+    }
+
+    // 页面加载后启动轮询
+    function initBrainPolling() {
+        // 先尝试一次
+        pollBrainStatus();
+        // 定时轮询
+        brainTimer = setInterval(pollBrainStatus, BRAIN_POLL_INTERVAL);
+        console.log('[AI大脑] 状态轮询已启动, 间隔 ' + BRAIN_POLL_INTERVAL + 'ms');
+    }
+
+    // DOM 就绪后启动
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initBrainPolling);
+    } else {
+        initBrainPolling();
+    }
+})();
+</script>
+
 </html>

@@ -664,4 +664,139 @@ h1 {
     cursor: pointer;
 }
 
+/* =======================AI 智能大脑状态面板==================== */
+.brain-status-panel {
+    background: rgba(0, 20, 50, 0.85);
+    border: 1px solid rgba(0, 200, 255, 0.35);
+    border-radius: 8px;
+    padding: 6px 10px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 0 20px rgba(0, 150, 255, 0.2), inset 0 0 30px rgba(0, 100, 200, 0.05);
+    box-sizing: border-box;
+    z-index: 25;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+    overflow: hidden;
+}
+
+.brain-status-panel:hover {
+    border-color: rgba(0, 200, 255, 0.6);
+    box-shadow: 0 0 30px rgba(0, 150, 255, 0.35), inset 0 0 30px rgba(0, 100, 200, 0.08);
+}
+
+.brain-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 3px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid rgba(0, 200, 255, 0.15);
+}
+
+.brain-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: #00d4ff;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    letter-spacing: 1px;
+}
+
+.brain-title::before {
+    content: "🧠 ";
+}
+
+.brain-status-badge {
+    font-size: 10px;
+    padding: 1px 10px;
+    border-radius: 10px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.brain-status-badge.online {
+    background: rgba(0, 255, 100, 0.25);
+    color: #00ff88;
+    border: 1px solid rgba(0, 255, 100, 0.45);
+    box-shadow: 0 0 8px rgba(0, 255, 100, 0.3);
+}
+
+.brain-status-badge.offline {
+    background: rgba(255, 50, 50, 0.25);
+    color: #ff6666;
+    border: 1px solid rgba(255, 50, 50, 0.45);
+    box-shadow: 0 0 8px rgba(255, 50, 50, 0.25);
+}
+
+.brain-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 10px;
+}
+
+.brain-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 50, 100, 0.15);
+}
+
+.brain-item-label {
+    color: rgba(160, 200, 255, 0.8);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+.brain-item-value {
+    color: #ccedff;
+    font-weight: bold;
+    font-size: 13px;
+    text-shadow: 0 0 6px rgba(0, 212, 255, 0.25);
+    letter-spacing: 0.5px;
+}
+
+.brain-item-value.active-open {
+    color: #ff6b6b;
+    text-shadow: 0 0 10px rgba(255, 50, 50, 0.5);
+}
+
+.brain-item-value.active-close {
+    color: #4ae3ff;
+    text-shadow: 0 0 8px rgba(74, 227, 255, 0.3);
+}
+
+.brain-item-value.warning {
+    color: #ffb347;
+    text-shadow: 0 0 8px rgba(255, 160, 50, 0.4);
+}
+
+.brain-item-value.danger {
+    color: #ff5555;
+    text-shadow: 0 0 10px rgba(255, 50, 50, 0.5);
+}
+
+.brain-item-value.safe {
+    color: #33ff99;
+    text-shadow: 0 0 8px rgba(50, 255, 150, 0.3);
+}
+
+.brain-error-bar {
+    margin-top: 4px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(0, 200, 255, 0.1);
+    overflow: hidden;
+    position: relative;
+}
+
+.brain-error-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #00ff88, #ff9f43, #ff4444);
+    transition: width 0.5s ease;
+    box-shadow: 0 0 6px rgba(0, 255, 100, 0.3);
+}
+
 /* =======================文案文字==================== */
