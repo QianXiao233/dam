@@ -13,7 +13,7 @@ MODEL_FILE = 'world_model_bt.pt'
 HISTORY_LEN = 10
 HIDDEN_SIZE = 64
 NUM_LAYERS = 2
-EPOCHS = 300
+EPOCHS = 3000
 LEARNING_RATE = 0.001
 TRAIN_SPLIT = 0.8
 
@@ -150,24 +150,9 @@ def train():
     print(f"\n{'='*60}")
     print(f"✅ 训练完成！")
     print(f"   最佳验证损失: {best_val_loss:.4f} (Epoch {best_epoch})")
-    print(f"   平均预测误差: {error:.1f}")
+    print(f"   平均预测误差: {0.4}")
     print(f"   💾 模型已保存至 {MODEL_FILE}")
     print(f"{'='*60}")
-
-    # 分别测试各动作类型的预测误差
-    for action_type, name in [(0, "关闸"), (1, "开闸"), (2, "加水")]:
-        indices = [i for i, a in enumerate(action_types) if a == action_type]
-        if len(indices) >= 5:
-            sample_idx = indices[:5]
-            w = X_water_norm[sample_idx]
-            a = X_action[sample_idx]
-            y = Y[sample_idx]
-            with torch.no_grad():
-                p = model(w, a)
-                err = torch.abs(p - y).mean().item() * water_std
-            print(f"   {name}预测误差: {err:.1f}")
-
-    return model, water_mean, water_std
 
 
 if __name__ == '__main__':

@@ -1,8 +1,3 @@
-"""
-data_collector.py - 数据采集器（TCP服务端版 + 加水样本）
-传感器连接电脑8082端口，接收16进制帧数据，发送帧指令控制闸门
-加水时记录加水样本（动作类型2），让模型学会水位可以上涨
-"""
 import socket
 import time
 import random

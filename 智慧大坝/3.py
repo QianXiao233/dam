@@ -702,6 +702,7 @@ def run_flask():
 
 
 if __name__ == '__main__':
+    # 检查PyTorch CUDA支持
     print(f"\n🔍 系统检测")
     print(f"   PyTorch版本: {torch.__version__}")
     print(f"   CUDA可用: {torch.cuda.is_available()}")

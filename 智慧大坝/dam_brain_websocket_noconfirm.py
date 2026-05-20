@@ -564,6 +564,8 @@ def get_status():
 
 
 def run_flask():
+    import logging
+    logging.getLogger('werkzeug').setLevel(logging.ERROR)
     app.run(host=FLASK_HOST, port=FLASK_PORT, debug=False, use_reloader=False)
 
 
