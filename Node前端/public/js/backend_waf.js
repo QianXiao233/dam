@@ -47,10 +47,34 @@
         return false;
     }
     
+    // 向后端 WAF 上报风控事件（用于自动拉黑IP）
+    function reportHookToWAF() {
+        try {
+            // 使用 sendBeacon 确保页面关闭时请求也能发出
+            var data = new FormData();
+            data.append('source', 'backend_waf');
+            data.append('reason', 'hook_detected');
+            navigator.sendBeacon('/api/waf/report-hook', data);
+        } catch(e) {
+            // fallback: fetch keepalive
+            try {
+                fetch('/api/waf/report-hook', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'source=backend_waf&reason=hook_detected',
+                    keepalive: true
+                });
+            } catch(_) {}
+        }
+    }
+
     // 强制触发保护（直接执行，不依赖任何异步）
     function forceTriggerProtection() {
         if (protectionTriggered) return;
         protectionTriggered = true;
+
+        // 先向后端 WAF 上报风控
+        reportHookToWAF();
         
         console.log('[防护] ⚠️ 触发安全保护！页面将被清除');
         
