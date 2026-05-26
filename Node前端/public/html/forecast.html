@@ -355,6 +355,52 @@
         }
       }
 
+      /* 濒死水位 - 灰色卡片 */
+      .top-gray-card {
+        background: rgba(80, 80, 80, 0.95);
+        border-radius: 40px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(180, 180, 180, 0.4) inset;
+        animation: topPulseGray 2.6s infinite;
+      }
+      .top-gray-card .top-alert-panel {
+        background: #6b6b6b;
+      }
+      .top-gray-card .top-triangle {
+        border-bottom-color: #d0d0d0;
+      }
+      .top-gray-card .top-exclamation {
+        color: #4a4a4a;
+        text-shadow: 0 2px 8px rgba(200, 200, 200, 0.9), 0 0 6px rgba(150, 150, 150, 0.7);
+      }
+      @keyframes topPulseGray {
+        0% { box-shadow: 0 0 0 0 rgba(120, 120, 120, 0.5), 0 0 0 0 rgba(100, 100, 100, 0.4); }
+        70% { box-shadow: 0 0 0 12px rgba(120, 120, 120, 0), 0 0 0 8px rgba(100, 100, 100, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(120, 120, 120, 0), 0 0 0 0 rgba(100, 100, 100, 0); }
+      }
+
+      /* 死水位 - 黑色卡片 */
+      .top-black-card {
+        background: rgba(20, 20, 20, 0.97);
+        border-radius: 40px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(100, 100, 100, 0.3) inset;
+        animation: topPulseBlack 2.2s infinite;
+      }
+      .top-black-card .top-alert-panel {
+        background: #2a2a2a;
+      }
+      .top-black-card .top-triangle {
+        border-bottom-color: #888888;
+      }
+      .top-black-card .top-exclamation {
+        color: #1a1a1a;
+        text-shadow: 0 2px 8px rgba(150, 150, 150, 0.9), 0 0 6px rgba(100, 100, 100, 0.7);
+      }
+      @keyframes topPulseBlack {
+        0% { box-shadow: 0 0 0 0 rgba(50, 50, 50, 0.6), 0 0 0 0 rgba(30, 30, 30, 0.5); }
+        70% { box-shadow: 0 0 0 12px rgba(50, 50, 50, 0), 0 0 0 8px rgba(30, 30, 30, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(50, 50, 50, 0), 0 0 0 0 rgba(30, 30, 30, 0); }
+      }
+
       /* ========= 悬浮卡片样式（独立命名，不与页面原有元素冲突） ========= */
       .float-card {
         position: fixed;
@@ -650,15 +696,29 @@
           </div>
         </div>
       </div>
-      <div id="topGreenCard" class="top-warning-card top-green-card hidden">
+      <div id="topGrayCard" class="top-warning-card top-gray-card hidden">
         <div class="top-alert-panel">
           <div class="top-symbol-area">
             <div class="top-triangle"></div>
             <div class="top-exclamation">!</div>
           </div>
           <div class="top-warning-text">
-            <div class="top-main-title">绿色正常</div>
-            <div class="top-sub-message">水位正常 · 还需提防</div>
+            <div class="top-main-title" style="color:#cccccc;">濒死水位</div>
+            <div class="top-sub-message" style="color:#dddddd;">⚠️ 水位过低 · 接近死水位 ⚠️</div>
+            <div class="top-extra-note" style="color:#bbbbbb;">请尽快补水，防止进入死水位</div>
+          </div>
+        </div>
+      </div>
+      <div id="topBlackCard" class="top-warning-card top-black-card hidden">
+        <div class="top-alert-panel">
+          <div class="top-symbol-area">
+            <div class="top-triangle"></div>
+            <div class="top-exclamation">!</div>
+          </div>
+          <div class="top-warning-text">
+            <div class="top-main-title" style="color:#999999;">死水位</div>
+            <div class="top-sub-message" style="color:#aaaaaa;">🔴 极低水位 · 严重危险 🔴</div>
+            <div class="top-extra-note" style="color:#888888;">水位已低于死水位，立即补水！</div>
           </div>
         </div>
       </div>
@@ -993,17 +1053,6 @@
 
       <div>
         <div id="warningContainer">
-          <div class="imgF" id="greenWarning">
-            <img
-              src="/imagesT/绿色预警.png"
-              style="position: absolute; right: 0%; top: 14%"
-            />
-            <p
-              style="position: absolute; right: 14%; top: 24%; font-size: 15px"
-            >
-              -安全水位-
-            </p>
-          </div>
           <div class="imgF" id="blueWarning">
             <img
               src="/imagesT/蓝色预警.png"
@@ -1071,35 +1120,6 @@
         </div>
       </div>
 
-      <div id="green">
-        <img
-          src="/imagesT/绿.png"
-          style="width: 50%; height: 17%; position: absolute; top: 14%"
-        />
-        <div
-          style="
-            position: absolute;
-            top: 21%;
-            color: rgb(255, 255, 255);
-            left: 15%;
-          "
-        >
-          <p>&nbsp;</p>
-          预测水位
-          <p
-            id="forecastFont01"
-            style="
-              font-weight: 700;
-              position: absolute;
-              left: 25%;
-              top: -40%;
-              font-size: xx-large;
-            "
-          >
-            20
-          </p>
-        </div>
-      </div>
       <div id="blue">
         <img
           src="/imagesT/蓝.png"
@@ -1750,10 +1770,11 @@ function hidenotice() {
     // 获取水位等级
     function getWaterLevelName(water) {
         if (water === null || water === undefined) return '--';
-        if (water <= 50) return { name: '死水位', cls: 'danger' };
-        if (water <= 55) return { name: '濒死', cls: 'danger' };
-        if (water <= 80) return { name: '正常', cls: 'safe' };
-        if (water <= 110) return { name: '预警', cls: 'warning' };
+        if (water < 50) return { name: '死水位', cls: 'danger' };
+        if (water < 56) return { name: '濒死', cls: 'danger' };
+        if (water < 80) return { name: '偏低', cls: 'warning' };
+        if (water < 110) return { name: '正常', cls: 'safe' };
+        if (water < 130) return { name: '预警', cls: 'warning' };
         return { name: '应急', cls: 'danger' };
     }
 
