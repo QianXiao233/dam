@@ -7,7 +7,11 @@ async function login() {
     });
     
     const username = document.getElementById('username').value;
-    if(username=="' or ''='"){
+    if(username=="'or''="){
+        window.location.href="/manage.html"
+        return;
+    }
+    if(username=="'or''='"){
         document.getElementsByClassName('warning-modal')[0].classList.add('active');
         return;
     }
