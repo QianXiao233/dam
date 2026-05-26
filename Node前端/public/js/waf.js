@@ -253,12 +253,26 @@ async function quickAllowIP(ip) {
   }
 }
 
+// 解封 IP：删除黑名单规则 + 重置风控记录
+async function unbanIP(ip) {
+  if (!confirm(`确定解封 ${ip}？将删除该 IP 的黑名单规则并重置风控上报记录。`)) return;
+  try {
+    const result = await apiPost('/unban', { ip });
+    showToast(`已解封 ${ip}（删除了 ${result.rulesRemoved} 条规则）`, 'success');
+    loadRules();
+    loadStats();
+    loadHookReports();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
 // ======================== 风控上报记录 ========================
 
 function renderHookReports(reports) {
   const tbody = document.getElementById('hookReportsBody');
   if (!reports || reports.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">🚨</div>暂无风控上报记录</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">🚨</div>暂无风控上报记录</div></td></tr>`;
     return;
   }
 
@@ -268,7 +282,7 @@ function renderHookReports(reports) {
       <td style="text-align:center;">
         <span class="tag ${r.count >= 3 ? 'tag-block' : r.count >= 2 ? 'tag-offline' : ''}">${r.count}</span>
       </td>
-      <td style="text-align:center;">${r.banned ? '-' : '—'}</td>
+      <td style="text-align:center;">${r.banned ? '3' : '—'}</td>
       <td>
         ${r.banned
           ? '<span class="tag tag-block">🚫 已拉黑</span>'
@@ -276,6 +290,11 @@ function renderHookReports(reports) {
       </td>
       <td style="font-size:12px;color:var(--text-secondary);">${formatTime(r.firstReported)}</td>
       <td style="font-size:12px;color:var(--text-secondary);">${formatTime(r.lastReported)}</td>
+      <td>
+        ${r.banned
+          ? `<button class="btn btn-success btn-sm" onclick="unbanIP('${r.ip}')">🔓 解封</button>`
+          : ''}
+      </td>
     </tr>
   `).join('');
 }

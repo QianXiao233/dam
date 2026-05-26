@@ -119,9 +119,36 @@ class WAF {
   deleteRule(id) {
     const idx = this.rules.findIndex(r => r.id === id);
     if (idx === -1) throw new Error('规则不存在');
+    const rule = this.rules[idx];
     this.rules.splice(idx, 1);
+    // 同步清理 hook 标记，允许重新上报
+    if (rule && rule.comment && rule.comment.startsWith('[自动拉黑]')) {
+      this.hookReports.delete(rule.value);
+    }
     this._saveRules();
     return true;
+  }
+
+  /**
+   * 解封 IP：删除规则 + 重置风控记录
+   */
+  unbanIP(ip) {
+    // 删除该 IP 的所有规则
+    const before = this.rules.length;
+    this.rules = this.rules.filter(r => r.value !== ip);
+    const removed = before - this.rules.length;
+
+    // 重置风控上报记录
+    this.hookReports.delete(ip);
+
+    if (removed === 0) {
+      // 可能只有风控记录没有规则
+      return { unbanned: true, rulesRemoved: 0 };
+    }
+
+    this._saveRules();
+    console.log(`[WAF] 🔓 解封 IP ${ip}（删除了 ${removed} 条规则，重置了风控记录）`);
+    return { unbanned: true, rulesRemoved: removed };
   }
 
   /**
@@ -453,6 +480,18 @@ class WAF {
         success: true,
         data: self.getHookReportStats()
       });
+    });
+
+    // 解封 IP：删除规则 + 重置风控记录
+    router.post('/unban', (req, res) => {
+      try {
+        const { ip } = req.body;
+        if (!ip) return res.status(400).json({ success: false, error: 'IP 不能为空' });
+        const result = self.unbanIP(ip);
+        res.json({ success: true, data: result });
+      } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+      }
     });
 
     return router;
