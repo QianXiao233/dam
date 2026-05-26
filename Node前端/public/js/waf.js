@@ -153,7 +153,7 @@ async function addRule() {
   const comment = document.getElementById('ruleComment').value.trim();
 
   if (!value) {
-    showToast('请输入 IP 或 MAC 地址', 'error');
+    showToast('请输入 IP 地址', 'error');
     return;
   }
 
@@ -185,7 +185,7 @@ async function deleteRule(id) {
 function renderDevices(devices) {
   const tbody = document.getElementById('devicesTableBody');
   if (!devices || devices.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="icon">💻</div>暂无设备数据</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">💻</div>暂无设备数据</div></td></tr>`;
     return;
   }
 
@@ -194,9 +194,6 @@ function renderDevices(devices) {
       <td>
         <strong style="font-family:monospace;cursor:pointer;color:var(--accent-cyan);"
             onclick="quickBlockIP('${dev.ip}')" title="点击添加到黑名单">${dev.ip}</strong>
-      </td>
-      <td style="font-family:monospace;font-size:12px;color:${dev.mac ? 'var(--text-primary)' : 'var(--text-secondary)'};">
-        ${dev.mac || '— 未获取 —'}
       </td>
       <td>
         <span class="tag ${dev.online ? 'tag-online' : 'tag-offline'}">
@@ -357,20 +354,7 @@ function closeAddRuleModal() {
   document.getElementById('addRuleModal').classList.remove('active');
 }
 
-function toggleRuleValueHint() {
-  const target = document.getElementById('ruleTarget').value;
-  const label = document.getElementById('ruleValueLabel');
-  const hint = document.getElementById('ruleValueHint');
-  if (false) {
-    label.textContent = 'IP 地址';
-    document.getElementById('ruleValue').placeholder = '例如: 192.168.1.100';
-    hint.textContent = '支持完整 IP 地址';
-  } else {
-    label.textContent = 'MAC 地址';
-    document.getElementById('ruleValue').placeholder = '例如: 00:11:22:33:44:55';
-    hint.textContent = '格式: xx:xx:xx:xx:xx:xx';
-  }
-}
+
 
 // 点击弹窗外部关闭
 document.addEventListener('click', function(e) {

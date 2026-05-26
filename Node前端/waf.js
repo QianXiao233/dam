@@ -125,6 +125,11 @@ class WAF {
     if (rule && rule.comment && rule.comment.startsWith('[自动拉黑]')) {
       this.hookReports.delete(rule.value);
     }
+    // 同步清除设备 blocked 状态
+    if (rule) {
+      const device = this.devices.get(rule.value);
+      if (device) device.blocked = false;
+    }
     this._saveRules();
     return true;
   }
@@ -141,10 +146,9 @@ class WAF {
     // 重置风控上报记录
     this.hookReports.delete(ip);
 
-    if (removed === 0) {
-      // 可能只有风控记录没有规则
-      return { unbanned: true, rulesRemoved: 0 };
-    }
+    // 同步清除设备 blocked 状态
+    const device = this.devices.get(ip);
+    if (device) device.blocked = false;
 
     this._saveRules();
     console.log(`[WAF] 🔓 解封 IP ${ip}（删除了 ${removed} 条规则，重置了风控记录）`);
