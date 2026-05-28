@@ -2,8 +2,6 @@
 __pycache__/
 *.pyc
 *.pyo
-*.pt
-*.npy
 
 # Java / Maven
 java后端/target/
