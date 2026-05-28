@@ -27,4 +27,12 @@ public interface UserMapper {
     @Insert("INSERT INTO user(username, password, level) VALUES(#{username}, #{password}, #{level})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(UserService user);
+
+    // 更新用户
+    @Update("UPDATE user SET username=#{username}, password=#{password}, level=#{level} WHERE id=#{id}")
+    int update(UserService user);
+
+    // 删除用户
+    @Delete("DELETE FROM user WHERE id = #{id}")
+    int delete(Long id);
 }

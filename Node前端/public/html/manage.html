@@ -2,188 +2,425 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>大坝监控管理系统</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智御安澜 · 系统管理</title>
+  <script src="/js/apiUtils.js"></script>
+  <script src="/js/auth.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { margin: 0; padding: 0; }
-    .wrapper { display: flex; min-height: 100vh; }
-    .sidebar { width: 220px; background: #222d32; color: #fff; padding-top: 20px; }
-    .sidebar h4 { text-align: center; margin-bottom: 20px; }
-    .sidebar ul { list-style: none; padding: 0; }
-    .sidebar li a { display: block; padding: 12px 20px; color: #b8c7ce; text-decoration: none; }
-    .sidebar li a.active { background: #1e282c; color: #fff; border-left: 4px solid #337ab7; }
-    .content { flex: 1; padding: 20px; background: #f5f5f5; }
-    .panel { box-shadow: 0 1px 3px rgba(0,0,0,.1); }
-    .mt10 { margin-top: 10px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 30%, #0a1f2e, #030c15);
+      font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+      color: #c8d8e8;
+    }
+
+    /* 网格背景 */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-image:
+        linear-gradient(rgba(0, 150, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 150, 255, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* 顶部导航 */
+    .top-bar {
+      position: fixed; top: 0; left: 0; width: 100%;
+      background: rgba(5, 20, 35, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0, 170, 255, 0.3);
+      padding: 0 28px;
+      display: flex; justify-content: space-between; align-items: center;
+      height: 56px;
+      z-index: 100;
+    }
+    .logo-area { display: flex; align-items: center; gap: 10px; }
+    .logo-symbol {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #0088cc, #00bbff);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; color: #fff; font-weight: 700;
+    }
+    .logo-text {
+      font-size: 15px; font-weight: 600;
+      color: #e0f0ff; letter-spacing: 1px;
+    }
+    .nav-buttons { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+    .nav-btn {
+      background: rgba(0, 100, 150, 0.25);
+      border: 1px solid rgba(42, 170, 255, 0.3);
+      padding: 5px 14px; border-radius: 20px;
+      cursor: pointer; transition: all 0.2s; color: #b0c8dd; text-decoration: none;
+    }
+    .nav-btn:hover { background: rgba(0, 120, 200, 0.4); border-color: #2aaaff; color: #fff; text-decoration: none; }
+    .user-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0,0,0,0.3); padding: 4px 12px; border-radius: 20px;
+    }
+    .user-badge .avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: linear-gradient(135deg, #005a8a, #0088cc);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: #fff;
+    }
+    .logout-btn { color: #ff9966; cursor: pointer; }
+    .logout-btn:hover { color: #ffbb88; }
+    .time-display { font-family: 'Courier New', monospace; font-size: 13px; color: #6a8aaa; }
+
+    /* 主体 */
+    .app-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 76px 20px 24px;
+    }
+
+    /* 侧边栏 */
+    .sidebar {
+      position: fixed; left: 0; top: 56px; bottom: 0;
+      width: 180px;
+      background: rgba(5, 20, 35, 0.88);
+      backdrop-filter: blur(12px);
+      border-right: 1px solid rgba(0, 170, 255, 0.15);
+      padding: 12px 0;
+    }
+    .sidebar ul { list-style: none; padding: 0; margin: 0; }
+    .sidebar li a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 20px; color: #8899aa;
+      font-size: 13px; border-left: 3px solid transparent;
+      transition: all 0.2s; cursor: pointer; text-decoration: none;
+    }
+    .sidebar li a:hover { background: rgba(0, 120, 200, 0.08); color: #c0d8e8; }
+    .sidebar li a.active {
+      background: rgba(0, 120, 200, 0.12);
+      color: #88ddff;
+      border-left-color: #00aaff;
+    }
+    .sidebar .ico { width: 20px; text-align: center; font-size: 15px; opacity: 0.7; }
+
+    /* 主内容区 */
+    .main-content { margin-left: 180px; padding: 16px 20px; }
+
+    /* 面板 */
+    .panel {
+      background: rgba(10, 30, 45, 0.6);
+      border: 1px solid rgba(0, 170, 255, 0.12);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .panel-hd {
+      padding: 12px 18px;
+      border-bottom: 1px solid rgba(0, 170, 255, 0.08);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .panel-hd-title { font-size: 14px; font-weight: 600; color: #7ab8d8; }
+    .panel-bd { padding: 14px 18px; }
+
+    /* 表格 */
+    .tbl-wrap { overflow-x: auto; }
+    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tbl th {
+      padding: 9px 10px; text-align: left; font-weight: 500;
+      color: #5a8aaa; border-bottom: 1px solid rgba(0, 170, 255, 0.1);
+      white-space: nowrap; font-size: 12px; letter-spacing: 0.5px;
+    }
+    .tbl td {
+      padding: 8px 10px; color: #b0c8d8;
+      border-bottom: 1px solid rgba(0, 170, 255, 0.05);
+    }
+    .tbl tr:hover td { background: rgba(0, 120, 200, 0.06); }
+    .tag {
+      display: inline-block; padding: 1px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 500;
+    }
+    .tag-ok { background: rgba(0, 180, 80, 0.15); color: #5d9; }
+    .tag-off { background: rgba(150, 150, 150, 0.1); color: #888; }
+    .tag-on { background: rgba(0, 180, 80, 0.12); color: #5d9; border: 1px solid rgba(0, 180, 80, 0.2); }
+    .tag-er { background: rgba(220, 50, 50, 0.1); color: #e55; border: 1px solid rgba(220, 50, 50, 0.2); }
+
+    /* 按钮 */
+    .btn-act {
+      background: rgba(0, 120, 200, 0.12);
+      border: 1px solid rgba(42, 170, 255, 0.2);
+      color: #7ab8d8; padding: 3px 10px; border-radius: 4px;
+      font-size: 12px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-act:hover { background: rgba(0, 120, 200, 0.3); color: #c0e8ff; }
+    .btn-del {
+      background: rgba(200, 50, 50, 0.1);
+      border: 1px solid rgba(200, 50, 50, 0.2);
+      color: #d77; padding: 3px 10px; border-radius: 4px;
+      font-size: 12px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-del:hover { background: rgba(200, 50, 50, 0.25); color: #f99; }
+    .btn-add {
+      background: rgba(0, 140, 200, 0.15);
+      border: 1px solid rgba(42, 170, 255, 0.25);
+      color: #7ab8d8; padding: 4px 14px; border-radius: 4px;
+      font-size: 12px; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-add:hover { background: rgba(0, 140, 200, 0.3); color: #c0e8ff; }
+    .act-group { display: flex; gap: 4px; }
+
+    /* Bootstrap 模态框覆盖 - 精简 */
+    .modal-content {
+      background: rgba(8, 25, 40, 0.98);
+      border: 1px solid rgba(0, 170, 255, 0.2);
+      border-radius: 10px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .modal-header { border-bottom: 1px solid rgba(0, 170, 255, 0.08); padding: 12px 18px; }
+    .modal-header .close { color: #6a8aaa; opacity: 0.7; }
+    .modal-header .close:hover { opacity: 1; }
+    .modal-title { color: #7ab8d8; font-size: 14px; font-weight: 600; }
+    .modal-body { padding: 16px 18px; }
+    .modal-footer { border-top: 1px solid rgba(0, 170, 255, 0.08); padding: 10px 18px; }
+    .modal-footer .btn-default {
+      background: rgba(100, 100, 100, 0.15);
+      border: 1px solid rgba(200, 200, 200, 0.1);
+      color: #889; border-radius: 4px; font-size: 12px;
+    }
+    .modal-footer .btn-primary {
+      background: rgba(0, 120, 200, 0.3);
+      border: 1px solid rgba(42, 170, 255, 0.3);
+      color: #c0e8ff; border-radius: 4px; font-size: 12px;
+    }
+    .modal-footer .btn-primary:hover { background: rgba(0, 120, 200, 0.5); }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { color: #6a8aaa; font-size: 12px; font-weight: 400; margin-bottom: 4px; }
+    .form-control {
+      background: rgba(5, 20, 35, 0.7);
+      border: 1px solid rgba(0, 170, 255, 0.12);
+      border-radius: 6px; color: #c0d8e8;
+      box-shadow: none; padding: 6px 10px; height: auto; font-size: 13px;
+    }
+    .form-control:focus { border-color: rgba(0, 170, 255, 0.4); box-shadow: 0 0 6px rgba(0, 170, 255, 0.1); }
+    .form-control option { background: #0a1f2e; color: #c0d8e8; }
+
+    /* 空状态 */
+    .empty-state { text-align: center; padding: 32px 16px; color: #445; }
+    .empty-state p { font-size: 13px; }
+
+    /* Toast */
+    .toast-container { position: fixed; top: 70px; right: 16px; z-index: 99999; }
+    .toast-msg {
+      padding: 8px 16px; border-radius: 6px; margin-bottom: 6px;
+      font-size: 13px; min-width: 180px;
+      animation: slideIn 0.25s ease;
+    }
+    .toast-success { background: rgba(0, 150, 60, 0.85); color: #fff; border: 1px solid rgba(0, 200, 80, 0.3); }
+    .toast-error { background: rgba(180, 30, 30, 0.85); color: #fff; border: 1px solid rgba(255, 60, 60, 0.3); }
+    @keyframes slideIn { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 48px; }
+      .sidebar li a span { display: none; }
+      .main-content { margin-left: 48px; padding: 12px; }
+      .app-container { padding: 68px 8px 16px; }
+    }
   </style>
 </head>
 <body>
-<div id="app" class="wrapper">
-  <!-- 左侧导航 -->
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- 顶栏 -->
+<div class="top-bar">
+  <div class="logo-area">
+    <div class="logo-symbol">澜</div>
+    <span class="logo-text">智御安澜 · 管理</span>
+  </div>
+  <div class="nav-buttons">
+    <span class="time-display" id="currentTime"></span>
+    <div class="user-badge">
+      <div class="avatar">A</div>
+      <span id="userName">--</span>
+    </div>
+    <a class="nav-btn" href="/navigation.html">驾驶舱</a>
+    <a class="logout-btn nav-btn" id="logoutBtn">退出</a>
+  </div>
+</div>
+
+<!-- 主体 -->
+<div class="app-container" id="app">
+
+  <!-- 侧栏 -->
   <div class="sidebar">
-    <h4>大坝监控系统</h4>
     <ul>
-      <li><a @click="switchMenu('user')" :class="{active: currentMenu=='user'}">用户信息管理</a></li>
-      <li><a @click="switchMenu('dam')" :class="{active: currentMenu=='dam'}">大坝基本参数管理</a></li>
-      <li><a @click="switchMenu('device')" :class="{active: currentMenu=='device'}">传感器设备管理</a></li>
-      <li><a @click="switchMenu('warn')" :class="{active: currentMenu=='warn'}">大坝监控预警管理</a></li>
-      <li><a @click="switchMenu('flood')" :class="{active: currentMenu=='flood'}">泄洪历史管理</a></li>
+      <li><a :class="{active: currentMenu=='user'}" @click="switchMenu('user')"><span class="ico">&#9776;</span><span>用户管理</span></a></li>
+      <li><a :class="{active: currentMenu=='dam'}" @click="switchMenu('dam')"><span class="ico">&#9671;</span><span>大坝信息</span></a></li>
+      <li><a :class="{active: currentMenu=='device'}" @click="switchMenu('device')"><span class="ico">&#9678;</span><span>设备管理</span></a></li>
+      <li><a :class="{active: currentMenu=='param'}" @click="switchMenu('param')"><span class="ico">&#9881;</span><span>预警参数</span></a></li>
     </ul>
   </div>
 
-  <!-- 右侧内容 -->
-  <div class="content">
-    <!-- 用户管理 -->
+  <!-- 内容 -->
+  <div class="main-content">
+
+    <!-- 用户 -->
     <div v-if="currentMenu=='user'">
-      <div class="panel panel-primary">
-        <div class="panel-heading">用户信息管理</div>
-        <div class="panel-body">
-          <button class="btn btn-success btn-sm" @click="openUserModal(null)">新增用户</button>
-          <table class="table table-bordered table-hover mt10">
-            <thead>
-              <tr><th>ID</th><th>用户名</th><th>密码</th><th>权限等级</th><th>操作</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in userList" :key="item.id">
-                <td>{{item.id}}</td>
-                <td>{{item.username}}</td>
-                <td>{{item.password}}</td>
-                <td>{{item.level==1?'管理员':'普通用户'}}</td>
-                <td>
-                  <button class="btn btn-xs btn-primary" @click="openUserModal(item)">编辑</button>
-                  <button class="btn btn-xs btn-danger" @click="delUser(item.id)">删除</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="panel">
+        <div class="panel-hd">
+          <span class="panel-hd-title">用户管理</span>
+          <button class="btn-add" @click="openUserModal(null)">+ 新增</button>
+        </div>
+        <div class="panel-bd">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead>
+                <tr><th>ID</th><th>用户名</th><th>密码</th><th>权限</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr v-if="userList.length===0"><td colspan="5"><div class="empty-state"><p>暂无数据</p></div></td></tr>
+                <tr v-for="item in userList" :key="item.id">
+                  <td>{{item.id}}</td>
+                  <td>{{item.username}}</td>
+                  <td><span style="filter:blur(4px);cursor:pointer;transition:0.2s;" @click="item._showPwd=!item._showPwd" :style="item._showPwd?'filter:none':''">{{item.password}}</span></td>
+                  <td><span class="tag" :class="item.level==1?'tag-ok':'tag-off'">{{item.level==1?'管理员':'普通'}}</span></td>
+                  <td><div class="act-group">
+                    <button class="btn-act" @click="openUserModal(item)">编辑</button>
+                    <button class="btn-del" @click="deleteUser(item.id)">删除</button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 大坝参数 -->
+    <!-- 大坝 -->
     <div v-if="currentMenu=='dam'">
-      <div class="panel panel-primary">
-        <div class="panel-heading">大坝基本参数管理</div>
-        <div class="panel-body">
-          <button class="btn btn-success btn-sm" @click="openDamModal(null)">新增大坝</button>
-          <table class="table table-bordered table-hover mt10">
-            <thead>
-              <tr><th>ID</th><th>大坝名称</th><th>类型</th><th>设计水位</th><th>防洪水位</th><th>状态</th><th>操作</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in damList" :key="item.dam_id">
-                <td>{{item.dam_id}}</td>
-                <td>{{item.dam_name}}</td>
-                <td>{{item.dam_type}}</td>
-                <td>{{item.design_water_level}}</td>
-                <td>{{item.flood_water_level}}</td>
-                <td>{{item.status==1?'正常':'停用'}}</td>
-                <td>
-                  <button class="btn btn-xs btn-primary" @click="openDamModal(item)">编辑</button>
-                  <button class="btn btn-xs btn-danger" @click="delDam(item.dam_id)">删除</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="panel">
+        <div class="panel-hd">
+          <span class="panel-hd-title">大坝信息</span>
+          <button class="btn-add" @click="openDamModal(null)">+ 新增</button>
+        </div>
+        <div class="panel-bd">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead>
+                <tr><th>ID</th><th>名称</th><th>类型</th><th>河流</th><th>设计水位</th><th>防洪</th><th>坝高</th><th>状态</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr v-if="damList.length===0"><td colspan="9"><div class="empty-state"><p>暂无数据</p></div></td></tr>
+                <tr v-for="item in damList" :key="item.damId">
+                  <td>{{item.damId}}</td>
+                  <td>{{item.damName}}</td>
+                  <td>{{item.damType}}</td>
+                  <td>{{item.riverName || '-'}}</td>
+                  <td>{{item.designWaterLevel}}</td>
+                  <td>{{item.floodWaterLevel}}</td>
+                  <td>{{item.damHeight}}</td>
+                  <td><span class="tag" :class="item.status==1?'tag-ok':'tag-off'">{{item.status==1?'正常':'停用'}}</span></td>
+                  <td><div class="act-group">
+                    <button class="btn-act" @click="openDamModal(item)">编辑</button>
+                    <button class="btn-del" @click="deleteDam(item.damId)">删除</button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 传感器设备 -->
+    <!-- 设备 -->
     <div v-if="currentMenu=='device'">
-      <div class="panel panel-primary">
-        <div class="panel-heading">传感器设备管理</div>
-        <div class="panel-body">
-          <button class="btn btn-success btn-sm" @click="openDeviceModal(null)">新增设备</button>
-          <table class="table table-bordered table-hover mt10">
-            <thead>
-              <tr><th>ID</th><th>设备名称</th><th>类型</th><th>大坝ID</th><th>状态</th><th>操作</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in deviceList" :key="item.device_id">
-                <td>{{item.device_id}}</td>
-                <td>{{item.device_name}}</td>
-                <td>{{item.device_type}}</td>
-                <td>{{item.dam_id}}</td>
-                <td :class="item.status==1?'text-success':item.status==2?'text-muted':'text-danger'">
-                  {{item.status==1?'在线':item.status==2?'离线':'故障'}}
-                </td>
-                <td>
-                  <button class="btn btn-xs btn-primary" @click="openDeviceModal(item)">编辑</button>
-                  <button class="btn btn-xs btn-danger" @click="delDevice(item.device_id)">删除</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="panel">
+        <div class="panel-hd">
+          <span class="panel-hd-title">设备管理</span>
+          <button class="btn-add" @click="openDeviceModal(null)">+ 新增</button>
+        </div>
+        <div class="panel-bd">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead>
+                <tr><th>ID</th><th>名称</th><th>编号</th><th>类型</th><th>大坝</th><th>厂商</th><th>协议</th><th>状态</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr v-if="deviceList.length===0"><td colspan="9"><div class="empty-state"><p>暂无数据</p></div></td></tr>
+                <tr v-for="item in deviceList" :key="item.deviceId">
+                  <td>{{item.deviceId}}</td>
+                  <td>{{item.deviceName}}</td>
+                  <td><code style="background:rgba(0,170,255,0.08);color:#7ab8d8;padding:0 5px;border-radius:3px;font-size:12px;">{{item.deviceCode}}</code></td>
+                  <td>{{item.deviceType}}</td>
+                  <td>{{item.damId}}</td>
+                  <td>{{item.manufacturer || '-'}}</td>
+                  <td><span style="background:rgba(0,170,255,0.08);color:#7ab8d8;padding:1px 6px;border-radius:3px;font-size:11px;">{{item.protocol || 'MQTT'}}</span></td>
+                  <td>
+                    <span class="tag" :class="item.status==1?'tag-on':item.status==2?'tag-off':'tag-er'">
+                      {{item.status==1?'在线':item.status==2?'离线':'故障'}}
+                    </span>
+                  </td>
+                  <td><div class="act-group">
+                    <button class="btn-act" @click="openDeviceModal(item)">编辑</button>
+                    <button class="btn-del" @click="deleteDevice(item.deviceId)">删除</button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 监控预警 -->
-    <div v-if="currentMenu=='warn'">
-      <div class="panel panel-primary">
-        <div class="panel-heading">大坝监控预警管理</div>
-        <div class="panel-body">
-          <table class="table table-bordered">
-            <thead><tr><th>参数名称</th><th>安全下限</th><th>安全上限</th><th>当前状态</th></tr></thead>
-            <tbody>
-              <tr v-for="item in paramList" :key="item.param_id">
-                <td>{{item.param_name}}</td>
-                <td>{{item.param_low_value}}</td>
-                <td>{{item.param_high_value}}</td>
-                <td class="text-success">正常</td>
-              </tr>
-            </tbody>
-          </table>
+    <!-- 参数 -->
+    <div v-if="currentMenu=='param'">
+      <div class="panel">
+        <div class="panel-hd">
+          <span class="panel-hd-title">系统参数</span>
+          <button class="btn-add" @click="openParamModal(null)">+ 新增</button>
+        </div>
+        <div class="panel-bd">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead>
+                <tr><th>ID</th><th>编码</th><th>名称</th><th>下限</th><th>上限</th><th>类型</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr v-if="paramList.length===0"><td colspan="7"><div class="empty-state"><p>暂无数据</p></div></td></tr>
+                <tr v-for="item in paramList" :key="item.paramId">
+                  <td>{{item.paramId}}</td>
+                  <td><code style="background:rgba(0,170,255,0.08);color:#7ab8d8;padding:0 5px;border-radius:3px;font-size:12px;">{{item.paramCode}}</code></td>
+                  <td>{{item.paramName}}</td>
+                  <td>{{item.paramLowValue}}</td>
+                  <td>{{item.paramHighValue}}</td>
+                  <td>{{item.paramType || '-'}}</td>
+                  <td><div class="act-group">
+                    <button class="btn-act" @click="openParamModal(item)">编辑</button>
+                    <button class="btn-del" @click="deleteParam(item.paramId)">删除</button>
+                  </div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 泄洪历史 -->
-    <div v-if="currentMenu=='flood'">
-      <div class="panel panel-primary">
-        <div class="panel-heading">泄洪历史管理</div>
-        <div class="panel-body">
-          <button class="btn btn-success btn-sm" @click="openFloodModal(null)">新增泄洪记录</button>
-          <table class="table table-bordered table-hover mt10">
-            <thead>
-              <tr>
-                <th>ID</th><th>大坝ID</th><th>开始时间</th><th>泄洪时长(小时)</th><th>排水量(m³)</th><th>责任人</th><th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in floodList" :key="item.id">
-                <td>{{item.id}}</td>
-                <td>{{item.dam_id}}</td>
-                <td>{{item.start_time}}</td>
-                <td>{{item.duration}}</td>
-                <td>{{item.discharge}}</td>
-                <td>{{item.director}}</td>
-                <td>
-                  <button class="btn btn-xs btn-primary" @click="openFloodModal(item)">编辑</button>
-                  <button class="btn btn-xs btn-danger" @click="delFlood(item.id)">删除</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+  </div><!-- /main-content -->
 
-  <!-- 用户弹窗 -->
+  <!-- ==================== 模态框 ==================== -->
+
+  <!-- 用户 -->
   <div class="modal fade" tabindex="-1" role="dialog" id="userModal">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
           <h4 class="modal-title">{{userForm.id?'编辑用户':'新增用户'}}</h4>
         </div>
         <div class="modal-body">
-          <div class="form-group"><label>用户名</label><input v-model="userForm.username" class="form-control"></div>
-          <div class="form-group"><label>密码</label><input v-model="userForm.password" class="form-control"></div>
-          <div class="form-group">
-            <label>权限等级</label>
+          <div class="form-group"><label>用户名</label><input v-model="userForm.username" class="form-control" placeholder=""></div>
+          <div class="form-group"><label>密码</label><input v-model="userForm.password" class="form-control" type="password"></div>
+          <div class="form-group"><label>权限</label>
             <select v-model="userForm.level" class="form-control">
               <option :value="1">管理员</option>
               <option :value="2">普通用户</option>
@@ -198,19 +435,38 @@
     </div>
   </div>
 
-  <!-- 大坝弹窗 -->
+  <!-- 大坝 -->
   <div class="modal fade" tabindex="-1" role="dialog" id="damModal">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-          <h4 class="modal-title">{{damForm.dam_id?'编辑大坝':'新增大坝'}}</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">{{damForm.damId?'编辑大坝':'新增大坝'}}</h4>
         </div>
         <div class="modal-body">
-          <div class="form-group"><label>大坝名称</label><input v-model="damForm.dam_name" class="form-control"></div>
-          <div class="form-group"><label>大坝类型</label><input v-model="damForm.dam_type" class="form-control"></div>
-          <div class="form-group"><label>设计水位</label><input v-model="damForm.design_water_level" class="form-control"></div>
-          <div class="form-group"><label>防洪水位</label><input v-model="damForm.flood_water_level" class="form-control"></div>
+          <div class="form-group"><label>大坝名称</label><input v-model="damForm.damName" class="form-control"></div>
+          <div class="form-group"><label>类型</label>
+            <select v-model="damForm.damType" class="form-control">
+              <option value="">--</option>
+              <option value="土石坝">土石坝</option>
+              <option value="混凝土坝">混凝土坝</option>
+              <option value="拱坝">拱坝</option>
+              <option value="重力坝">重力坝</option>
+            </select>
+          </div>
+          <div class="form-group"><label>河流</label><input v-model="damForm.riverName" class="form-control"></div>
+          <div class="row">
+            <div class="col-sm-4"><div class="form-group"><label>设计水位(m)</label><input v-model="damForm.designWaterLevel" class="form-control" type="number" step="0.01"></div></div>
+            <div class="col-sm-4"><div class="form-group"><label>防洪水位(m)</label><input v-model="damForm.floodWaterLevel" class="form-control" type="number" step="0.01"></div></div>
+            <div class="col-sm-4"><div class="form-group"><label>坝高(m)</label><input v-model="damForm.damHeight" class="form-control" type="number" step="0.01"></div></div>
+          </div>
+          <div class="form-group"><label>状态</label>
+            <select v-model="damForm.status" class="form-control">
+              <option :value="1">正常</option>
+              <option :value="0">停用</option>
+            </select>
+          </div>
+          <div class="form-group"><label>备注</label><textarea v-model="damForm.remark" class="form-control" rows="2"></textarea></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
@@ -220,26 +476,50 @@
     </div>
   </div>
 
-  <!-- 设备弹窗 -->
+  <!-- 设备 -->
   <div class="modal fade" tabindex="-1" role="dialog" id="deviceModal">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-          <h4 class="modal-title">{{deviceForm.device_id?'编辑设备':'新增设备'}}</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">{{deviceForm.deviceId?'编辑设备':'新增设备'}}</h4>
         </div>
         <div class="modal-body">
-          <div class="form-group"><label>设备名称</label><input v-model="deviceForm.device_name" class="form-control"></div>
-          <div class="form-group"><label>设备类型</label><input v-model="deviceForm.device_type" class="form-control"></div>
-          <div class="form-group"><label>所属大坝ID</label><input v-model="deviceForm.dam_id" class="form-control"></div>
-          <div class="form-group">
-            <label>状态</label>
+          <div class="form-group"><label>设备名称</label><input v-model="deviceForm.deviceName" class="form-control"></div>
+          <div class="form-group"><label>设备编号</label><input v-model="deviceForm.deviceCode" class="form-control" placeholder="如 SN-001"></div>
+          <div class="row">
+            <div class="col-sm-6"><div class="form-group"><label>类型</label>
+              <select v-model="deviceForm.deviceType" class="form-control">
+                <option value="">--</option>
+                <option value="水位计">水位计</option>
+                <option value="渗压计">渗压计</option>
+                <option value="雨量计">雨量计</option>
+                <option value="位移计">位移计</option>
+                <option value="温度传感器">温度传感器</option>
+              </select>
+            </div></div>
+            <div class="col-sm-6"><div class="form-group"><label>所属大坝ID</label><input v-model="deviceForm.damId" class="form-control" type="number"></div></div>
+          </div>
+          <div class="row">
+            <div class="col-sm-6"><div class="form-group"><label>生产厂家</label><input v-model="deviceForm.manufacturer" class="form-control"></div></div>
+            <div class="col-sm-6"><div class="form-group"><label>设备型号</label><input v-model="deviceForm.model" class="form-control"></div></div>
+          </div>
+          <div class="form-group"><label>通信协议</label>
+            <select v-model="deviceForm.protocol" class="form-control">
+              <option value="MQTT">MQTT</option>
+              <option value="Modbus">Modbus</option>
+              <option value="4G">4G</option>
+              <option value="NB-IoT">NB-IoT</option>
+            </select>
+          </div>
+          <div class="form-group"><label>状态</label>
             <select v-model="deviceForm.status" class="form-control">
               <option :value="1">在线</option>
               <option :value="2">离线</option>
               <option :value="3">故障</option>
             </select>
           </div>
+          <div class="form-group"><label>安装位置</label><input v-model="deviceForm.installPosition" class="form-control" placeholder="如：1号坝段"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
@@ -249,147 +529,248 @@
     </div>
   </div>
 
-  <!-- 泄洪弹窗 -->
-  <div class="modal fade" tabindex="-1" role="dialog" id="floodModal">
+  <!-- 参数 -->
+  <div class="modal fade" tabindex="-1" role="dialog" id="paramModal">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-          <h4 class="modal-title">{{floodForm.id?'编辑泄洪记录':'新增泄洪记录'}}</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">{{paramForm.paramId?'编辑参数':'新增参数'}}</h4>
         </div>
         <div class="modal-body">
-          <div class="form-group"><label>大坝ID</label><input v-model="floodForm.dam_id" class="form-control"></div>
-          <div class="form-group"><label>开始泄洪时间</label><input v-model="floodForm.start_time" class="form-control"></div>
-          <div class="form-group"><label>泄洪时长(小时)</label><input v-model="floodForm.duration" class="form-control"></div>
-          <div class="form-group"><label>排水量(m³)</label><input v-model="floodForm.discharge" class="form-control"></div>
-          <div class="form-group"><label>泄洪责任人</label><input v-model="floodForm.director" class="form-control"></div>
+          <div class="form-group"><label>参数编码</label><input v-model="paramForm.paramCode" class="form-control" placeholder="如 10001"></div>
+          <div class="form-group"><label>参数名称</label><input v-model="paramForm.paramName" class="form-control" placeholder="如：水位"></div>
+          <div class="row">
+            <div class="col-sm-6"><div class="form-group"><label>安全下限</label><input v-model="paramForm.paramLowValue" class="form-control"></div></div>
+            <div class="col-sm-6"><div class="form-group"><label>安全上限</label><input v-model="paramForm.paramHighValue" class="form-control"></div></div>
+          </div>
+          <div class="form-group"><label>类型</label>
+            <select v-model="paramForm.paramType" class="form-control">
+              <option value="">--</option>
+              <option value="水位值">水位值</option>
+              <option value="水质值">水质值</option>
+              <option value="PH值">PH值</option>
+              <option value="渗流值">渗流值</option>
+              <option value="位移值">位移值</option>
+            </select>
+          </div>
+          <div class="form-group"><label>备注</label><input v-model="paramForm.remark" class="form-control"></div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-          <button type="button" class="btn btn-primary" @click="saveFlood">保存</button>
+          <button type="button" class="btn btn-primary" @click="saveParam">保存</button>
         </div>
       </div>
     </div>
   </div>
-</div>
+
+</div><!-- /app -->
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
 <script>
+function getToken() { return localStorage.getItem('token') || ''; }
+
+async function apiCall(url, params) {
+  const token = getToken();
+  const opts = { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } };
+  if (params) {
+    const body = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== '') body.append(k, v);
+    }
+    opts.body = body;
+    opts.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+  }
+  const resp = await fetch(url, opts);
+  return resp.json();
+}
+
+async function apiGet(url) {
+  const token = getToken();
+  const resp = await fetch(url, { method: 'GET', headers: { 'Authorization': 'Bearer ' + token } });
+  return resp.json();
+}
+
+function showToast(msg, type) {
+  const c = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast-msg toast-' + (type || 'success');
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = '0.3s'; }, 2500);
+  setTimeout(() => el.remove(), 3000);
+}
+
 new Vue({
   el: '#app',
   data: {
     currentMenu: 'user',
-    // 用户
-    userList: [
-      {id:1, username:'admin', password:'123456', level:1},
-      {id:2, username:'test1', password:'test', level:2}
-    ],
-    userForm: {id:'', username:'', password:'', level:1},
-    // 大坝
-    damList: [
-      {dam_id:1, dam_name:'一号大坝', dam_type:'土石坝', design_water_level:100, flood_water_level:120, status:1}
-    ],
-    damForm: {dam_id:'', dam_name:'', dam_type:'', design_water_level:'', flood_water_level:'', status:1},
-    // 设备
-    deviceList: [
-      {device_id:1, device_name:'水位计', device_type:'水位计', dam_id:1, status:1}
-    ],
-    deviceForm: {device_id:'', device_name:'', device_type:'', dam_id:'', status:1},
-    // 参数
-    paramList: [
-      {param_id:1, param_name:'水位', param_low_value:'20', param_high_value:'130'},
-      {param_id:2, param_name:'水质', param_low_value:'0.3', param_high_value:'0.8'},
-      {param_id:3, param_name:'PH值', param_low_value:'6.1', param_high_value:'9'}
-    ],
-    // 泄洪
-    floodList: [
-      {id:1, dam_id:1, start_time:'2026-04-24 10:00:00', duration:2.5, discharge:5000, director:'张三'}
-    ],
-    floodForm: {id:'', dam_id:'', start_time:'', duration:'', discharge:'', director:''}
+    token: '', username: '', level: 0,
+    userList: [],
+    userForm: { id: '', username: '', password: '', level: 1 },
+    damList: [],
+    damForm: { damId: '', damName: '', damType: '', riverName: '', designWaterLevel: '', floodWaterLevel: '', damHeight: '', damStorage: '', status: 1, remark: '' },
+    deviceList: [],
+    deviceForm: { deviceId: '', deviceName: '', deviceCode: '', deviceType: '', damId: '', manufacturer: '', model: '', protocol: 'MQTT', status: 1, installPosition: '' },
+    paramList: [],
+    paramForm: { paramId: '', paramCode: '', paramName: '', paramLowValue: '', paramHighValue: '', paramType: '', remark: '' }
   },
-  methods: {
-    switchMenu(menu) { this.currentMenu = menu; },
 
-    // -------------------- 用户 --------------------
+  methods: {
+    switchMenu(menu) {
+      this.currentMenu = menu;
+      if (menu === 'user') this.loadUsers();
+      else if (menu === 'dam') this.loadDams();
+      else if (menu === 'device') this.loadDevices();
+      else if (menu === 'param') this.loadParams();
+    },
+
+    async loadUsers() {
+      const res = await apiGet(window.apiUrls.java_url + '/manage/user/list');
+      if (res.success) this.userList = res.data || [];
+      else showToast(res.message || '加载失败', 'error');
+    },
+    async loadDams() {
+      const res = await apiGet(window.apiUrls.java_url + '/manage/dam/list');
+      if (res.success) this.damList = res.data || [];
+      else showToast(res.message || '加载失败', 'error');
+    },
+    async loadDevices() {
+      const res = await apiGet(window.apiUrls.java_url + '/manage/device/list');
+      if (res.success) this.deviceList = res.data || [];
+      else showToast(res.message || '加载失败', 'error');
+    },
+    async loadParams() {
+      const res = await apiGet(window.apiUrls.java_url + '/manage/param/list');
+      if (res.success) this.paramList = res.data || [];
+      else showToast(res.message || '加载失败', 'error');
+    },
+
+    // ---- 用户 ----
     openUserModal(row) {
-      if(row) {
-        this.userForm = {...row};
-      } else {
-        this.userForm = {id:'', username:'', password:'', level:1};
-      }
+      if (row) this.userForm = { id: row.id, username: row.username, password: row.password, level: row.level };
+      else this.userForm = { id: '', username: '', password: '', level: 1 };
       $('#userModal').modal('show');
     },
-    saveUser() {
-      if(!this.userForm.username || !this.userForm.password) { alert('请填写完整'); return; }
-      if(this.userForm.id) {
-        this.userList = this.userList.map(item => item.id==this.userForm.id ? {...this.userForm} : item);
-      } else {
-        let maxId = this.userList.reduce((max, item) => Math.max(max, item.id), 0);
-        this.userList.push({...this.userForm, id: maxId+1});
-      }
-      $('#userModal').modal('hide');
+    async saveUser() {
+      if (!this.userForm.username || !this.userForm.password) { showToast('请填写完整', 'error'); return; }
+      const ep = this.userForm.id ? 'update' : 'add';
+      const res = await apiCall(window.apiUrls.java_url + '/manage/user/' + ep, {
+        id: this.userForm.id || undefined, username: this.userForm.username, password: this.userForm.password, level: this.userForm.level
+      });
+      if (res.success) { showToast('操作成功', 'success'); $('#userModal').modal('hide'); this.loadUsers(); }
+      else showToast(res.message || '操作失败', 'error');
     },
-    delUser(id) {
-      if(!confirm('确定删除？')) return;
-      this.userList = this.userList.filter(item => item.id != id);
+    async deleteUser(id) {
+      if (!confirm('确定删除？')) return;
+      const res = await apiCall(window.apiUrls.java_url + '/manage/user/delete', { id });
+      if (res.success) { showToast('已删除', 'success'); this.loadUsers(); }
+      else showToast(res.message || '删除失败', 'error');
     },
 
-    // -------------------- 大坝 --------------------
+    // ---- 大坝 ----
     openDamModal(row) {
-      row ? this.damForm = {...row} : this.damForm = {dam_id:'', dam_name:'', dam_type:'', design_water_level:'', flood_water_level:'', status:1};
+      if (row) this.damForm = { damId: row.damId, damName: row.damName, damType: row.damType || '', riverName: row.riverName || '', designWaterLevel: row.designWaterLevel || '', floodWaterLevel: row.floodWaterLevel || '', damHeight: row.damHeight || '', damStorage: row.damStorage || '', status: row.status, remark: row.remark || '' };
+      else this.damForm = { damId: '', damName: '', damType: '', riverName: '', designWaterLevel: '', floodWaterLevel: '', damHeight: '', damStorage: '', status: 1, remark: '' };
       $('#damModal').modal('show');
     },
-    saveDam() {
-      if(this.damForm.dam_id) {
-        this.damList = this.damList.map(item => item.dam_id==this.damForm.dam_id ? {...this.damForm} : item);
-      } else {
-        let maxId = this.damList.reduce((max, item) => Math.max(max, item.dam_id), 0);
-        this.damList.push({...this.damForm, dam_id: maxId+1});
-      }
-      $('#damModal').modal('hide');
+    async saveDam() {
+      if (!this.damForm.damName) { showToast('请填写大坝名称', 'error'); return; }
+      const ep = this.damForm.damId ? 'update' : 'add';
+      const res = await apiCall(window.apiUrls.java_url + '/manage/dam/' + ep, {
+        dam_id: this.damForm.damId || undefined, dam_name: this.damForm.damName, dam_type: this.damForm.damType || undefined,
+        river_name: this.damForm.riverName || undefined, design_water_level: this.damForm.designWaterLevel || undefined,
+        flood_water_level: this.damForm.floodWaterLevel || undefined, dam_height: this.damForm.damHeight || undefined,
+        dam_storage: this.damForm.damStorage || undefined, status: this.damForm.status, remark: this.damForm.remark || undefined
+      });
+      if (res.success) { showToast('操作成功', 'success'); $('#damModal').modal('hide'); this.loadDams(); }
+      else showToast(res.message || '操作失败', 'error');
     },
-    delDam(id) {
-      if(confirm('确定删除？')) this.damList = this.damList.filter(item => item.dam_id != id);
+    async deleteDam(id) {
+      if (!confirm('确定删除？')) return;
+      const res = await apiCall(window.apiUrls.java_url + '/manage/dam/delete', { damId: id });
+      if (res.success) { showToast('已删除', 'success'); this.loadDams(); }
+      else showToast(res.message || '删除失败', 'error');
     },
 
-    // -------------------- 设备 --------------------
+    // ---- 设备 ----
     openDeviceModal(row) {
-      row ? this.deviceForm = {...row} : this.deviceForm = {device_id:'', device_name:'', device_type:'', dam_id:'', status:1};
+      if (row) this.deviceForm = { deviceId: row.deviceId, deviceName: row.deviceName, deviceCode: row.deviceCode, deviceType: row.deviceType || '', damId: row.damId, manufacturer: row.manufacturer || '', model: row.model || '', protocol: row.protocol || 'MQTT', status: row.status, installPosition: row.installPosition || '' };
+      else this.deviceForm = { deviceId: '', deviceName: '', deviceCode: '', deviceType: '', damId: '', manufacturer: '', model: '', protocol: 'MQTT', status: 1, installPosition: '' };
       $('#deviceModal').modal('show');
     },
-    saveDevice() {
-      if(this.deviceForm.device_id) {
-        this.deviceList = this.deviceList.map(item => item.device_id==this.deviceForm.device_id ? {...this.deviceForm} : item);
-      } else {
-        let maxId = this.deviceList.reduce((max, item) => Math.max(max, item.device_id), 0);
-        this.deviceList.push({...this.deviceForm, device_id: maxId+1});
-      }
-      $('#deviceModal').modal('hide');
+    async saveDevice() {
+      if (!this.deviceForm.deviceName || !this.deviceForm.deviceCode) { showToast('请填写名称和编号', 'error'); return; }
+      if (!this.deviceForm.damId) { showToast('请填写所属大坝ID', 'error'); return; }
+      const ep = this.deviceForm.deviceId ? 'update' : 'add';
+      const res = await apiCall(window.apiUrls.java_url + '/manage/device/' + ep, {
+        device_id: this.deviceForm.deviceId || undefined, device_name: this.deviceForm.deviceName, device_code: this.deviceForm.deviceCode,
+        device_type: this.deviceForm.deviceType || undefined, dam_id: this.deviceForm.damId, manufacturer: this.deviceForm.manufacturer || undefined,
+        model: this.deviceForm.model || undefined, protocol: this.deviceForm.protocol, status: this.deviceForm.status,
+        install_position: this.deviceForm.installPosition || undefined
+      });
+      if (res.success) { showToast('操作成功', 'success'); $('#deviceModal').modal('hide'); this.loadDevices(); }
+      else showToast(res.message || '操作失败', 'error');
     },
-    delDevice(id) {
-      if(confirm('确定删除？')) this.deviceList = this.deviceList.filter(item => item.device_id != id);
+    async deleteDevice(id) {
+      if (!confirm('确定删除？')) return;
+      const res = await apiCall(window.apiUrls.java_url + '/manage/device/delete', { deviceId: id });
+      if (res.success) { showToast('已删除', 'success'); this.loadDevices(); }
+      else showToast(res.message || '删除失败', 'error');
     },
 
-    // -------------------- 泄洪 --------------------
-    openFloodModal(row) {
-      row ? this.floodForm = {...row} : this.floodForm = {id:'', dam_id:'', start_time:'', duration:'', discharge:'', director:''};
-      $('#floodModal').modal('show');
+    // ---- 参数 ----
+    openParamModal(row) {
+      if (row) this.paramForm = { paramId: row.paramId, paramCode: row.paramCode, paramName: row.paramName, paramLowValue: row.paramLowValue, paramHighValue: row.paramHighValue, paramType: row.paramType || '', remark: row.remark || '' };
+      else this.paramForm = { paramId: '', paramCode: '', paramName: '', paramLowValue: '', paramHighValue: '', paramType: '', remark: '' };
+      $('#paramModal').modal('show');
     },
-    saveFlood() {
-      if(this.floodForm.id) {
-        this.floodList = this.floodList.map(item => item.id==this.floodForm.id ? {...this.floodForm} : item);
-      } else {
-        let maxId = this.floodList.reduce((max, item) => Math.max(max, item.id), 0);
-        this.floodList.push({...this.floodForm, id: maxId+1});
-      }
-      $('#floodModal').modal('hide');
+    async saveParam() {
+      if (!this.paramForm.paramCode || !this.paramForm.paramName) { showToast('请填写编码和名称', 'error'); return; }
+      if (!this.paramForm.paramLowValue || !this.paramForm.paramHighValue) { showToast('请填写上下限', 'error'); return; }
+      const ep = this.paramForm.paramId ? 'update' : 'add';
+      const res = await apiCall(window.apiUrls.java_url + '/manage/param/' + ep, {
+        param_id: this.paramForm.paramId || undefined, param_code: this.paramForm.paramCode, param_name: this.paramForm.paramName,
+        param_low_value: this.paramForm.paramLowValue, param_high_value: this.paramForm.paramHighValue,
+        param_type: this.paramForm.paramType || undefined, remark: this.paramForm.remark || undefined
+      });
+      if (res.success) { showToast('操作成功', 'success'); $('#paramModal').modal('hide'); this.loadParams(); }
+      else showToast(res.message || '操作失败', 'error');
     },
-    delFlood(id) {
-      if(confirm('确定删除？')) this.floodList = this.floodList.filter(item => item.id != id);
+    async deleteParam(id) {
+      if (!confirm('确定删除？')) return;
+      const res = await apiCall(window.apiUrls.java_url + '/manage/param/delete', { paramId: id });
+      if (res.success) { showToast('已删除', 'success'); this.loadParams(); }
+      else showToast(res.message || '删除失败', 'error');
     }
+  },
+
+  async mounted() {
+    const token = getToken();
+    if (!token) { alert('请先登录'); window.location.href = '/index.html'; return; }
+    const res = await valibate_token(token);
+    if (!res || !res.success) { alert('凭证过期'); localStorage.removeItem('token'); window.location.href = '/index.html'; return; }
+    this.username = res.username || '未知';
+    this.level = res.level || 2;
+    document.getElementById('userName').textContent = this.username;
+    this.loadUsers();
   }
+});
+
+function updateClock() {
+  const n = new Date();
+  document.getElementById('currentTime').textContent =
+    n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0') + ' ' +
+    String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0') + ':' + String(n.getSeconds()).padStart(2,'0');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+document.getElementById('logoutBtn').addEventListener('click', function(e) {
+  e.preventDefault();
+  if (confirm('确定退出？')) { localStorage.removeItem('token'); window.location.href = '/index.html'; }
 });
 </script>
 </body>

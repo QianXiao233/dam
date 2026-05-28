@@ -23,8 +23,8 @@ FLASK_PORT = 5001
 
 # ========== 控制参数 ==========
 HISTORY_LEN = 10
-PLANNING_HORIZON = 8
-NUM_CANDIDATES = 64
+PLANNING_HORIZON = 12
+NUM_CANDIDATES = 128
 
 # ========== 在线学习参数 ==========
 LEARN_EVERY_N_STEPS = 50

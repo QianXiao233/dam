@@ -1,5 +1,5 @@
-const BASE_URL="192.168.10.251";
-//const BASE_URL="127.0.0.1"
+//const BASE_URL="192.168.10.251";
+const BASE_URL="127.0.0.1"
 window.apiUrls = {
 
     SOCKET_URL: "ws://"+BASE_URL+":8085/websocket",
