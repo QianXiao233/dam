@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -282,7 +282,7 @@
                   <td>{{item.id}}</td>
                   <td>{{item.username}}</td>
                   <td><span style="filter:blur(4px);cursor:pointer;transition:0.2s;" @click="item._showPwd=!item._showPwd" :style="item._showPwd?'filter:none':''">{{item.password}}</span></td>
-                  <td><span class="tag" :class="item.level==1?'tag-ok':'tag-off'">{{item.level==1?'管理员':'普通'}}</span></td>
+                  <td><span class="tag" :class="'tag-lv'+item.level">{{'Lv.'+item.level}}</span></td>
                   <td><div class="act-group">
                     <button class="btn-act" @click="openUserModal(item)">编辑</button>
                     <button class="btn-del" @click="deleteUser(item.id)">删除</button>
@@ -422,8 +422,11 @@
           <div class="form-group"><label>密码</label><input v-model="userForm.password" class="form-control" type="password"></div>
           <div class="form-group"><label>权限</label>
             <select v-model="userForm.level" class="form-control">
-              <option :value="1">管理员</option>
-              <option :value="2">普通用户</option>
+              <option :value="0">Lv.0</option>
+              <option :value="1">Lv.1</option>
+              <option :value="2">Lv.2</option>
+              <option :value="3">Lv.3</option>
+              <option :value="4">Lv.4</option>
             </select>
           </div>
         </div>
