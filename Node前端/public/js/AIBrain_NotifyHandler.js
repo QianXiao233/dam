@@ -4,8 +4,6 @@ let pendingPumpMessage = null;  // 存储待确认的消息
 let isConfirming = false;       // 是否处于二次确认状态
 
 async function checkPumpNotify() {
-    if (!canShowPumpNotify) return;
-    
     try {
         const countResponse = await fetch(window.apiUrls.java_url + "/get_messagecount", {
             method: 'GET',
@@ -20,7 +18,11 @@ async function checkPumpNotify() {
         
         const messageCount = await countResponse.json();
         
+        // ── 有未处理消息：仅在没有弹窗时才显示 ──
         if (messageCount > 0) {
+            // 弹窗已显示中，不做任何事（等它被删除后走下面 else 分支关闭）
+            if (!canShowPumpNotify) return;
+
             console.log(`发现 ${messageCount} 条消息，正在获取...`);
             
             const messageResponse = await fetch(window.apiUrls.java_url + "/get_message", {
@@ -38,6 +40,17 @@ async function checkPumpNotify() {
             
             if (result && result.type === "PumpNotify") {
                 handlePumpNotify(result);
+            }
+        }
+        // ── 无未处理消息：如果弹窗还在显示，说明被其他设备处理了 ──
+        else {
+            var card = document.querySelector(".float-card");
+            if (card && !card.classList.contains("hide")) {
+                console.log('[PumpNotify] 弹窗消息已被其他设备处理，自动关闭');
+                hidenotice();
+                canShowPumpNotify = true;
+                pendingPumpMessage = null;
+                isConfirming = false;
             }
         }
         

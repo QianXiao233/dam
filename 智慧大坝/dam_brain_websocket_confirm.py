@@ -18,7 +18,7 @@ GATE_OPEN_URL = "http://192.168.10.251:8085/RelayControl/Open"
 GATE_CLOSE_URL = "http://192.168.10.251:8085/RelayControl/Close"
 
 # ========== Flask配置 ==========
-FLASK_HOST = '0.0.0.0'
+FLASK_HOST = '192.168.10.247'
 FLASK_PORT = 5001
 
 # ========== 控制参数 ==========
@@ -436,7 +436,7 @@ class DamBrain:
 
     def request_open_confirmation(self, water, level, explanation):
         """请求开闸确认"""
-        msg = f"警告：当前水位{water}，已达到{level}预警等级，AI回答{explanation}，建议开闸"
+        msg = f"警告：当前已达到{level}预警等级,AI回答{explanation}建议开闸"
         send_message(content=msg, msg_type="PumpNotify")
 
     def online_learn(self):
