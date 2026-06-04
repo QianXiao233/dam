@@ -1245,7 +1245,7 @@
         </div>
       </div>
 
-      <div style="position: absolute; top: 34%; width: 100%; height: 51%">
+      <div id="planImageContainer" style="position: absolute; top: 34%; width: 100%; height: 51%">
         <div style="position: relative; width: 100%; height: 100%;">
           <img
             src="/imagesT/预案文稿初始.png"
@@ -1356,8 +1356,7 @@
         textContainer.innerHTML = "";
         tts.speak(text);
         typeWriter(text, 0, textContainer);
-        leftHalf.style.display = "none";
-        rightHalf.style.display = "none";
+        document.getElementById("planImageContainer").style.display = "none";
       }
 
       if (leftHalf) {
@@ -1376,8 +1375,7 @@
         textContainer.addEventListener("click", function () {
           textContainer.style.display = "none";
           textContainer.innerHTML = "";
-          leftHalf.style.display = "";
-          rightHalf.style.display = "";
+          document.getElementById("planImageContainer").style.display = "";
           clearTimeout(typingInterval);
           tts.stop();
         });
