@@ -82,7 +82,8 @@
             document.getElementById('orangeWarning').style.display = 'block';
             document.getElementById('orangeWarning').querySelector('p').textContent = '橙色预警';
             document.getElementById('orange').style.display = 'block';
-            document.getElementById('orangeLabel').textContent = '预测水位';
+            var olEl = document.getElementById('orangeLabel');
+            if (olEl) olEl.textContent = '预测水位';
             document.getElementById('forecastFont04').innerHTML = value;
             showTopCard(topOrangeCard);
         } else if (value >= 130) {
