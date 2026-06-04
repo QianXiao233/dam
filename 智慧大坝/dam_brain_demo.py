@@ -43,7 +43,7 @@ GATE_CLOSE_URL = "http://192.168.10.251:8085/RelayControl/Close"
 
 # ========== Flask配置 ==========
 FLASK_HOST = '0.0.0.0'
-FLASK_PORT = 5001
+FLASK_PORT = 5003
 
 # ========== 控制参数 ==========
 HISTORY_LEN = 10
