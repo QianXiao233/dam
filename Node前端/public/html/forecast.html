@@ -1246,14 +1246,19 @@
       </div>
 
       <div style="position: absolute; top: 34%; width: 100%; height: 51%">
+        <div style="position: relative; width: 100%; height: 100%;">
+          <img
+            src="/imagesT/预案文稿初始.png"
+            style="width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none;"
+          />
+          <!-- 左侧点击区域 -->
+          <div id="planLeftHalf" style="position: absolute; left: 0; top: 0; width: 50%; height: 100%; cursor: pointer; z-index: 2;"></div>
+          <!-- 右侧点击区域 -->
+          <div id="planRightHalf" style="position: absolute; right: 0; top: 0; width: 50%; height: 100%; cursor: pointer; z-index: 2;"></div>
+        </div>
         <img
           src="/imagesT/预案文稿初始.png"
-          style="
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            cursor: pointer;
-          "
+          style="display: none;"
           id="planImage"
         />
       </div>
@@ -1318,18 +1323,25 @@
 
     // 预案文稿点击事件
     document.addEventListener("DOMContentLoaded", function () {
-      const img = document.getElementById("planImage");
       const textContainer = document.getElementById("textContainer");
-      let isOriginal = true;
+      const leftHalf = document.getElementById("planLeftHalf");
+      const rightHalf = document.getElementById("planRightHalf");
       let typingInterval;
       let tts = new CrossPlatformTTS();
       tts.setDefaultRate(1.25);
 
-      const fullText = `关于启动洪水黄色预警响应的紧急通知
+      const leftText = `关于启动洪水黄色预警响应的紧急通知
 各乡（镇）人民政府、市直有关单位：据气象监测，我市即将迎来强降雨，部分区域大概率引发洪水，现已达到洪水黄色预警启动条件，现就紧急防范工作要求如下：
 即刻启动应急响应：全面进入防汛应急状态，严格执行 24 小时值班及领导带班制度，保障联络通畅、信息高效流转。
 紧盯重点隐患防控：住建部门重点排查城市低洼路段、地下车库等易涝区域，检修排水设备，提前落实排涝举措。
 抓实人员避险准备：各乡镇全面摸排低洼区域、地质灾害隐患点，提前做好群众转移预案，遇险情迅速组织避险撤离。`;
+
+      const rightText = `水库调度方案
+根据当前水位和气象预报，现制定以下调度方案：
+1. 当前水位已接近预警线，建议开启泄洪闸门降低库容。
+2. 预计未来24小时仍有强降水，需提前腾出防洪库容。
+3. 下游河道行洪能力充足，可按计划泄洪。
+4. 密切监视水位变化，必要时启动应急预案。`;
 
       function typeWriter(text, i, element) {
         if (i < text.length) {
@@ -1339,32 +1351,34 @@
         }
       }
 
-      if (img) {
-        img.addEventListener("click", function () {
-          if (isOriginal) {
-            this.style.display = "none";
-            textContainer.style.display = "block";
-            textContainer.innerHTML = "";
-            tts.speak(fullText);
-            typeWriter(fullText, 0, textContainer);
-          } else {
-            this.style.display = "block";
-            textContainer.style.display = "none";
-            clearTimeout(typingInterval);
-            tts.stop();
-            textContainer.innerHTML = "";
-          }
-          isOriginal = !isOriginal;
+      function showText(text) {
+        textContainer.style.display = "block";
+        textContainer.innerHTML = "";
+        tts.speak(text);
+        typeWriter(text, 0, textContainer);
+        leftHalf.style.display = "none";
+        rightHalf.style.display = "none";
+      }
+
+      if (leftHalf) {
+        leftHalf.addEventListener("click", function () {
+          showText(leftText);
+        });
+      }
+
+      if (rightHalf) {
+        rightHalf.addEventListener("click", function () {
+          showText(rightText);
         });
       }
 
       if (textContainer) {
         textContainer.addEventListener("click", function () {
-          img.style.display = "block";
           textContainer.style.display = "none";
-          clearTimeout(typingInterval);
           textContainer.innerHTML = "";
-          isOriginal = true;
+          leftHalf.style.display = "";
+          rightHalf.style.display = "";
+          clearTimeout(typingInterval);
           tts.stop();
         });
       }
