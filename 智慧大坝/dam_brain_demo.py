@@ -43,7 +43,7 @@ GATE_CLOSE_URL = "http://192.168.10.251:8085/RelayControl/Close"
 
 # ========== Flask配置 ==========
 FLASK_HOST = '0.0.0.0'
-FLASK_PORT = 5003
+FLASK_PORT = 5001
 
 # ========== 控制参数 ==========
 HISTORY_LEN = 10
@@ -63,8 +63,8 @@ COST_CRITICAL = 500.0
 COST_LOW = 100.0
 COST_WARNING = 20.0
 COST_EMERGENCY = 1000.0
-COST_WASTE = 10.0
-COST_SWITCH = 5.0
+COST_WASTE = 30.0                    # ⚡ 展演：提高放水浪费成本（原10→30）
+COST_SWITCH = 8.0                    # ⚡ 展演：提高开关切换成本（原5→8）
 COST_TARGET_DEVIATION = 2.0          # 偏离目标水位的惩罚
 COST_OVERSHOOT = 15.0                # 放水过猛的惩罚（降到目标以下）
 COST_RAPID_CHANGE = 8.0              # 水位剧烈变化的惩罚
@@ -319,41 +319,50 @@ class DamBrain:
     def _generate_candidates_demo(self, current_water):
         """
         🧪 展演专用候选生成：
-        在随机候选的基础上，加入了固定策略候选序列，
-        确保演示场景每次都能稳定复现。
+        根据当前水位状态，智能决定是否加入开闸候选。
+        - 水位正常 + 趋势稳定 → 只留关闸候选（不需要考虑开闸）
+        - 水位偏高或上涨快 → 加入固定开闸策略
         """
+        rate = self._get_rate()
         candidates = []
 
-        # ═══ 固定策略候选（保底方案，确保演示效果稳定） ═══
-
-        # 【策略1】立刻开闸，保持几帧后关闭
-        for keep in [2, 3, 4, 5, 6]:
-            seq = [1] * min(keep, PLANNING_HORIZON) + [0] * (PLANNING_HORIZON - keep)
-            candidates.append(seq)
-
-        # 【策略2】延迟1-2帧后开闸，再关闭
-        for delay in [1, 2]:
-            for keep in [3, 4, 5]:
-                seq = [0] * delay + [1] * keep + [0] * (PLANNING_HORIZON - delay - keep)
-                if len(seq) == PLANNING_HORIZON:
-                    candidates.append(seq)
-
-        # 【策略3】全关闸 / 全开闸 基准
+        # 全关闸基准（永远存在）
         candidates.append([0] * PLANNING_HORIZON)
-        candidates.append([1] * PLANNING_HORIZON)
 
-        # 【策略4】间歇开闸（开-关-开-关）
-        for on_period in [2, 3, 4]:
-            for off_period in [2, 3, 4]:
-                seq = []
-                toggle = False
-                while len(seq) < PLANNING_HORIZON:
-                    for _ in range(on_period if toggle else off_period):
-                        if len(seq) >= PLANNING_HORIZON:
-                            break
-                        seq.append(1 if toggle else 0)
-                    toggle = not toggle
+        # ═══ 判断是否需要考虑开闸 ═══
+        # 只有水位偏高(>=预警线) 或 上涨速度快 时，才加入开闸候选
+        need_open = (current_water >= WATER_WARNING or
+                     current_water >= WATER_CRITICAL + 5 and rate > 0.5 or
+                     rate > 1.0)
+
+        if need_open:
+            # 【策略1】立刻开闸，保持几帧后关闭
+            for keep in [2, 3, 4, 5, 6]:
+                seq = [1] * min(keep, PLANNING_HORIZON) + [0] * (PLANNING_HORIZON - keep)
                 candidates.append(seq)
+
+            # 【策略2】延迟1-2帧后开闸，再关闭
+            for delay in [1, 2]:
+                for keep in [3, 4, 5]:
+                    seq = [0] * delay + [1] * keep + [0] * (PLANNING_HORIZON - delay - keep)
+                    if len(seq) == PLANNING_HORIZON:
+                        candidates.append(seq)
+
+            # 【策略3】全开闸基准
+            candidates.append([1] * PLANNING_HORIZON)
+
+            # 【策略4】间歇开闸（开-关-开-关）
+            for on_period in [2, 3, 4]:
+                for off_period in [2, 3, 4]:
+                    seq = []
+                    toggle = False
+                    while len(seq) < PLANNING_HORIZON:
+                        for _ in range(on_period if toggle else off_period):
+                            if len(seq) >= PLANNING_HORIZON:
+                                break
+                            seq.append(1 if toggle else 0)
+                        toggle = not toggle
+                    candidates.append(seq)
 
         # ═══ 随机候选（保留探索能力） ═══
         for _ in range(NUM_CANDIDATES):
@@ -469,6 +478,15 @@ class DamBrain:
         if current >= WATER_EMERGENCY:
             print(f"\n   🚨 应急水位{current}，强制开闸！")
             return 1
+
+        # ============================================================
+        # ✅ 安全守卫：正常水位 + 趋势稳定 → 直接关闸，不考虑开闸
+        #    防止AI在安全状态下误判开闸（展演关键）
+        # ============================================================
+        rate = self._get_rate()
+        if current < WATER_WARNING and abs(rate) < 0.5:
+            # 水位低于预警线 + 变化平缓 → 没必要开闸
+            return 0
 
         # ============================================================
         # ✅ 关键修复：原版这里写的是 return 0（bug）
