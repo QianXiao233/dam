@@ -22,7 +22,7 @@ class WAF {
   constructor(options = {}) {
     this.rulesPath = options.rulesPath || path.join(__dirname, 'waf_rules.json');
     this.whitelistMode = options.whitelistMode || false;
-    this.hookThreshold = options.hookThreshold || 3;  // 同一 IP 触发风控 N 次后自动拉黑
+    this.hookThreshold = options.hookThreshold || 20;  // 同一 IP 触发风控 N 次后自动拉黑
     this.hookReports = new Map();  // Map<ip, { count, firstReported, lastReported, banned }>
 
     this.whitelistPaths = options.whitelistPaths || [
