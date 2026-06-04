@@ -118,10 +118,21 @@ function showConfirmDialog() {
 
 // 执行真正的开闸操作
 async function executeConfirmOpen() {
+    // 显示处理中状态
+    shownotice("⏳ 正在执行开闸，请稍候...");
+    
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
         const response = await fetch('http://192.168.10.247:5001/confirm_open', {
             method: 'GET',
+            signal: controller.signal,
         });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
         const data = await response.json();
         console.log('确认开闸结果:', data);
         
@@ -141,6 +152,9 @@ async function executeConfirmOpen() {
         
     } catch (error) {
         console.error('确认开闸失败:', error);
+        if (error.name === 'AbortError') {
+            console.log('请求超时');
+        }
         // 失败时恢复原始弹窗内容
         restoreOriginalNotice();
     }
@@ -195,9 +209,17 @@ function restoreOriginalNotice() {
 window.rejectOpen = async function() {
     
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
         const response = await fetch('http://192.168.10.247:5001/reject_open', {
             method: 'GET',
+            signal: controller.signal,
         });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
         const data = await response.json();
         console.log('拒绝开闸结果:', data);
         
@@ -214,6 +236,7 @@ window.rejectOpen = async function() {
         
     } catch (error) {
         console.error('拒绝开闸失败:', error);
+        restoreOriginalNotice();
     }
 }
 
