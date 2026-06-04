@@ -103,7 +103,7 @@ function showConfirmDialog() {
     if (confirmBtn) {
         confirmBtn.onclick = null;
         confirmBtn.onclick = function() {
-            executeConfirmOpen();
+            window.confirmOpen();
         };
     }
     
@@ -111,7 +111,7 @@ function showConfirmDialog() {
         rejectBtn.onclick = null;
         rejectBtn.onclick = function() {
             isConfirming=false;
-            rejectOpen();
+            window.rejectOpen();
         };
     }
 }
@@ -136,6 +136,8 @@ async function executeConfirmOpen() {
         canShowPumpNotify = true;
         pendingPumpMessage = null;
         isConfirming = false;
+        // 恢复按钮到原始处理器（下次弹窗重新走二次确认流程）
+        restoreButtonHandlers();
         
     } catch (error) {
         console.error('确认开闸失败:', error);
