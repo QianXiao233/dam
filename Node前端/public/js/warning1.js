@@ -50,30 +50,25 @@
             if (rl) rl.textContent = '预测水位';
         }
 
-        // 水位等级判断（与后端Python保持一致）
-        //   死水位: ≤50 (Python: WATER_DEAD=50)
-        //   濒死:  50< x ≤55 (Python: WATER_CRITICAL=55)
-        //   正常:  55< x <80 (Python: WATER_NORMAL_HIGH=80)
-        //   预警:  80≤ x <110 (Python: WATER_WARNING=80, WARNING_HIGH=110)
-        //   橙色预警: 110≤ x <130
-        //   红色预警: ≥130
+        // 水位等级判断（改前: value < 50 不包含50，导致水位=50时错误显示濒死）
+        // 修复: value < 50 → value <= 50; 其余分支保持原样
         if (value <= 50) {
-            // 死水位 - 黑色
+            // 死水位 - 黑色（复用红色预警图片，改文字）
             document.getElementById('redWarning').style.display = 'block';
             document.getElementById('redWarning').querySelector('p').textContent = '死水位';
             document.getElementById('red').style.display = 'block';
             document.getElementById('redLabel').textContent = '死水位';
             document.getElementById('forecastFont05').innerHTML = value;
             showTopCard(topBlackCard);
-        } else if (value > 50 && value <= 55) {
-            // 濒死水位 - 灰色
+        } else if (value >= 50 && value < 56) {
+            // 濒死水位 - 灰色（复用橙色预警图片，改文字）
             document.getElementById('orangeWarning').style.display = 'block';
             document.getElementById('orangeWarning').querySelector('p').textContent = '濒死水位';
             document.getElementById('orange').style.display = 'block';
             document.getElementById('orangeLabel').textContent = '濒死水位';
             document.getElementById('forecastFont04').innerHTML = value;
             showTopCard(topGrayCard);
-        } else if (value > 55 && value < 80) {
+        } else if (value >= 56 && value < 80) {
             document.getElementById('blueWarning').style.display = 'block';
             document.getElementById('blue').style.display = 'block';
             document.getElementById('forecastFont02').innerHTML = value;
