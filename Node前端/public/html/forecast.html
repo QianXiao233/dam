@@ -1768,14 +1768,15 @@ function hidenotice() {
     var brainTimer = null;
 
     // 获取水位等级（与后端Python保持一致）
-    //   死水位: ≤50  |  濒死: ≤55  |  正常: <80  |  预警: ≥80 && <110  |  应急: ≥110
+    //   死水位: ≤50  |  濒死: ≤55  |  正常: <80  |  预警: <110  |  橙色预警: <130  |  红色预警: ≥130
     function getWaterLevelName(water) {
         if (water === null || water === undefined) return '--';
         if (water <= 50) return { name: '死水位', cls: 'danger' };
         if (water <= 55) return { name: '濒死', cls: 'danger' };
         if (water < 80) return { name: '正常', cls: 'safe' };
         if (water < 110) return { name: '预警', cls: 'warning' };
-        return { name: '应急', cls: 'danger' };
+        if (water < 130) return { name: '橙色预警', cls: 'warning' };
+        return { name: '红色预警', cls: 'danger' };
     }
 
     // 更新面板

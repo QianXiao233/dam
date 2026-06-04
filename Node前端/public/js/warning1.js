@@ -55,7 +55,8 @@
         //   濒死:  50< x ≤55 (Python: WATER_CRITICAL=55)
         //   正常:  55< x <80 (Python: WATER_NORMAL_HIGH=80)
         //   预警:  80≤ x <110 (Python: WATER_WARNING=80, WARNING_HIGH=110)
-        //   应急:  ≥110 (Python: WATER_EMERGENCY=110)
+        //   橙色预警: 110≤ x <130
+        //   红色预警: ≥130
         if (value <= 50) {
             // 死水位 - 黑色
             document.getElementById('redWarning').style.display = 'block';
@@ -82,7 +83,14 @@
             document.getElementById('yellow').style.display = 'block';
             document.getElementById('forecastFont03').innerHTML = value;
             showTopCard(topYellowCard);
-        } else if (value >= 110) {
+        } else if (value >= 110 && value < 130) {
+            document.getElementById('orangeWarning').style.display = 'block';
+            document.getElementById('orangeWarning').querySelector('p').textContent = '橙色预警';
+            document.getElementById('orange').style.display = 'block';
+            document.getElementById('orangeLabel').textContent = '预测水位';
+            document.getElementById('forecastFont04').innerHTML = value;
+            showTopCard(topOrangeCard);
+        } else if (value >= 130) {
             document.getElementById('redWarning').style.display = 'block';
             document.getElementById('redWarning').querySelector('p').textContent = '红色预警';
             document.getElementById('red').style.display = 'block';
