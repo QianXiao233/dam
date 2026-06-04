@@ -50,24 +50,29 @@
             if (rl) rl.textContent = '预测水位';
         }
 
-        // 水位等级判断
-        if (value < 50) {
-            // 死水位 - 黑色（复用红色预警图片，改文字）
+        // 水位等级判断（与后端Python保持一致）
+        //   死水位: ≤50 (Python: WATER_DEAD=50)
+        //   濒死:  50< x ≤55 (Python: WATER_CRITICAL=55)
+        //   正常:  55< x <80 (Python: WATER_NORMAL_HIGH=80)
+        //   预警:  80≤ x <110 (Python: WATER_WARNING=80, WARNING_HIGH=110)
+        //   应急:  ≥110 (Python: WATER_EMERGENCY=110)
+        if (value <= 50) {
+            // 死水位 - 黑色
             document.getElementById('redWarning').style.display = 'block';
             document.getElementById('redWarning').querySelector('p').textContent = '死水位';
             document.getElementById('red').style.display = 'block';
             document.getElementById('redLabel').textContent = '死水位';
             document.getElementById('forecastFont05').innerHTML = value;
             showTopCard(topBlackCard);
-        } else if (value >= 50 && value < 56) {
-            // 濒死水位 - 灰色（复用橙色预警图片，改文字）
+        } else if (value > 50 && value <= 55) {
+            // 濒死水位 - 灰色
             document.getElementById('orangeWarning').style.display = 'block';
             document.getElementById('orangeWarning').querySelector('p').textContent = '濒死水位';
             document.getElementById('orange').style.display = 'block';
             document.getElementById('orangeLabel').textContent = '濒死水位';
             document.getElementById('forecastFont04').innerHTML = value;
             showTopCard(topGrayCard);
-        } else if (value >= 56 && value < 80) {
+        } else if (value > 55 && value < 80) {
             document.getElementById('blueWarning').style.display = 'block';
             document.getElementById('blue').style.display = 'block';
             document.getElementById('forecastFont02').innerHTML = value;
@@ -77,14 +82,7 @@
             document.getElementById('yellow').style.display = 'block';
             document.getElementById('forecastFont03').innerHTML = value;
             showTopCard(topYellowCard);
-        } else if (value >= 110 && value < 130) {
-            document.getElementById('orangeWarning').style.display = 'block';
-            document.getElementById('orangeWarning').querySelector('p').textContent = '橙色预警';
-            document.getElementById('orange').style.display = 'block';
-            document.getElementById('orangeLabel').textContent = '预测水位';
-            document.getElementById('forecastFont04').innerHTML = value;
-            showTopCard(topOrangeCard);
-        } else if (value >= 130) {
+        } else if (value >= 110) {
             document.getElementById('redWarning').style.display = 'block';
             document.getElementById('redWarning').querySelector('p').textContent = '红色预警';
             document.getElementById('red').style.display = 'block';
