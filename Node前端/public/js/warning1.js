@@ -91,7 +91,7 @@ window.receiveWarningValue = function() {
         showTopCard(topGrayCard);
     } else if (value >= 56 && value < 80) {
         var bw = document.getElementById('blueWarning');
-        if (bw) { bw.style.display = 'block'; var p = bw.querySelector('p'); if (p) p.textContent = '正常'; }
+        if (bw) { bw.style.display = 'block'; var p = bw.querySelector('p'); if (p) p.textContent = '蓝色预警'; }
         var b = document.getElementById('blue');
         if (b) { b.style.display = 'block'; }
         var f2 = document.getElementById('forecastFont02');
@@ -99,7 +99,7 @@ window.receiveWarningValue = function() {
         showTopCard(topBlueCard);
     } else if (value >= 80 && value < 110) {
         var yw = document.getElementById('yellowWarning');
-        if (yw) { yw.style.display = 'block'; var p = yw.querySelector('p'); if (p) p.textContent = '预警'; }
+        if (yw) { yw.style.display = 'block'; var p = yw.querySelector('p'); if (p) p.textContent = '黄色预警'; }
         var y = document.getElementById('yellow');
         if (y) { y.style.display = 'block'; }
         var f3 = document.getElementById('forecastFont03');
