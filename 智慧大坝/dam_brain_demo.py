@@ -365,18 +365,25 @@ class DamBrain:
                     candidates.append(seq)
 
         # ═══ 随机候选（保留探索能力） ═══
-        for _ in range(NUM_CANDIDATES):
-            candidates.append(np.random.randint(0, 2, PLANNING_HORIZON).tolist())
-
-        # ═══ 最优继承（上一步好方案微调） ═══
-        if hasattr(self, '_last_best_seq') and self._last_best_seq is not None:
-            for _ in range(6):
-                mutant = self._last_best_seq.copy()
-                n_mutate = np.random.randint(1, 3)
-                positions = np.random.choice(PLANNING_HORIZON, n_mutate, replace=False)
-                for p in positions:
-                    mutant[p] = 1 - mutant[p]
-                candidates.append(mutant)
+        if need_open:
+            # 需要开闸 → 正常随机探索
+            for _ in range(NUM_CANDIDATES):
+                candidates.append(np.random.randint(0, 2, PLANNING_HORIZON).tolist())
+            # 最优继承
+            if hasattr(self, '_last_best_seq') and self._last_best_seq is not None:
+                for _ in range(6):
+                    mutant = self._last_best_seq.copy()
+                    n_mutate = np.random.randint(1, 3)
+                    positions = np.random.choice(PLANNING_HORIZON, n_mutate, replace=False)
+                    for p in positions:
+                        mutant[p] = 1 - mutant[p]
+                    candidates.append(mutant)
+        else:
+            # 不需要开闸 → 随机候选只生成全0序列，不给任何开闸机会
+            for _ in range(NUM_CANDIDATES):
+                candidates.append([0] * PLANNING_HORIZON)
+            # 最优继承也强制归零
+            self._last_best_seq = [0] * PLANNING_HORIZON
 
         return candidates
 
@@ -480,13 +487,14 @@ class DamBrain:
             return 1
 
         # ============================================================
-        # ✅ 安全守卫：正常水位 + 趋势稳定 → 直接关闸，不考虑开闸
-        #    防止AI在安全状态下误判开闸（展演关键）
+        # ✅ 安全守卫：水位低于预警线时，只有在快速上涨才可能开闸
+        #    缓慢上涨/稳定/下降 → 一律关闸
         # ============================================================
         rate = self._get_rate()
-        if current < WATER_WARNING and abs(rate) < 0.5:
-            # 水位低于预警线 + 变化平缓 → 没必要开闸
-            return 0
+        if current < WATER_WARNING:
+            if rate < 1.0:
+                # 上涨速度不快 → 没必要开闸
+                return 0
 
         # ============================================================
         # ✅ 关键修复：原版这里写的是 return 0（bug）
