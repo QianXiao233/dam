@@ -228,17 +228,17 @@ class ExperienceMemory:
 class DamBrain:
     def __init__(self, model_path='world_model_improved.pt'):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        print(f"\n{'='*50}")
-        print(f"🧪 智御安澜 · 展演专用版")
-        print(f"{'='*50}")
-        print(f"🔧 计算设备: {self.device}")
-        if torch.cuda.is_available():
-            print(f"   显卡: {torch.cuda.get_device_name(0)}")
-        print(f"📋 展演场景:")
-        print(f"   场景一: 暴雨快速注水 → 预警线80之前开闸")
-        print(f"   场景二: 小雨缓慢注水 → 应急线110之前开闸")
-        print(f"   场景三: 开闸后动态保持时长")
-        print(f"{'='*50}\n")
+        # print(f"\n{'='*50}")
+        # print(f"🧪 智御安澜 · 展演专用版")
+        # print(f"{'='*50}")
+        # print(f"🔧 计算设备: {self.device}")
+        # if torch.cuda.is_available():
+        #     print(f"   显卡: {torch.cuda.get_device_name(0)}")
+        # print(f"📋 展演场景:")
+        # print(f"   场景一: 暴雨快速注水 → 预警线80之前开闸")
+        # print(f"   场景二: 小雨缓慢注水 → 应急线110之前开闸")
+        # print(f"   场景三: 开闸后动态保持时长")
+        # print(f"{'='*50}\n")
 
         ckpt = torch.load(model_path, weights_only=False, map_location=self.device)
         self.model = WorldModel(ckpt['history_len'], ckpt['hidden_size'], ckpt['num_layers'])
@@ -613,18 +613,18 @@ class DamBrain:
 
     async def run(self):
         """主运行循环"""
-        print(f"\n{'='*50}")
-        print(f"🧠 智能大脑启动（展演专用版）")
-        print(f"{'='*50}")
-        print(f"   地址: {WS_URL}")
-        print(f"   目标水位: {TARGET_WATER}")
-        print(f"   黄色预警线: {WATER_WARNING}")
-        print(f"   应急水位线: {WATER_EMERGENCY}")
-        print(f"   🧪 冷却时间: 拒绝{REJECT_COOLDOWN}s / 开闸{OPEN_COOLDOWN}s")
-        print(f"   🧪 动态保持: {OPEN_HOLD_STEPS_MIN}-{OPEN_HOLD_STEPS_MAX}帧")
-        print(f"{'='*50}\n")
-
-        print(f"\n💧 请加至{TARGET_WATER}附近，系统就绪...\n")
+        # print(f"\n{'='*50}")
+        # print(f"🧠 智能大脑启动（展演专用版）")
+        # print(f"{'='*50}")
+        # print(f"   地址: {WS_URL}")
+        # print(f"   目标水位: {TARGET_WATER}")
+        # print(f"   黄色预警线: {WATER_WARNING}")
+        # print(f"   应急水位线: {WATER_EMERGENCY}")
+        # print(f"   🧪 冷却时间: 拒绝{REJECT_COOLDOWN}s / 开闸{OPEN_COOLDOWN}s")
+        # print(f"   🧪 动态保持: {OPEN_HOLD_STEPS_MIN}-{OPEN_HOLD_STEPS_MAX}帧")
+        # print(f"{'='*50}\n")
+        #
+        # print(f"\n💧 请加至{TARGET_WATER}附近，系统就绪...\n")
 
         while True:
             try:

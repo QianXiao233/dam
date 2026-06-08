@@ -1,8 +1,3 @@
-"""
-train_model.py - 训练世界模型（支持3种动作：0=关闸, 1=开闸, 2=加水）
-输入: training_data.npy
-输出: world_model.pt
-"""
 import numpy as np
 import torch
 import torch.nn as nn
