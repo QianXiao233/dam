@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <script src="/js/backend_waf.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>智御安澜 · 智慧水利导航</title>
@@ -20,6 +19,10 @@
             padding: 0;
             position: relative;
             animation: fadeIn 0.5s ease;
+        }
+        #userinfo1{
+            color: yellow;
+            font-weight: bolder;
         }
 
         @keyframes fadeIn {
@@ -250,7 +253,7 @@
 
 <div class="container">
     <div class="welcome">
-        <h1>欢迎使用智慧水利综合平台</h1>
+        <h1><span id="userinfo1"></span>，欢迎使用智慧水利综合平台</h1>
         <p>请选择您需要进入的系统模块</p>
     </div>
     <div class="grid" id="cardGrid"></div>
@@ -340,6 +343,7 @@
                 const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
                 userInfoDiv.innerHTML = `👤 ${loggedUser} &nbsp;|&nbsp; <span class="time-display">${timeStr}</span>`;
             };
+            document.getElementById('userinfo1').innerText=`${loggedUser}`
             updateTime();
             setInterval(updateTime, 1000);
             
