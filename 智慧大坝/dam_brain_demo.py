@@ -592,24 +592,25 @@ class DamBrain:
         send_message(content=msg, msg_type="PumpNotify")
 
     def online_learn(self):
-        if self.memory.size() < LEARN_BATCH_SIZE:
-            return
-        self.learn_count += 1
-        batch = self.memory.sample_batch(LEARN_BATCH_SIZE)
-        if batch is None:
-            return
-        water_batch, action_batch, next_batch = batch
-        water_norm = ((water_batch - self.water_mean) / self.water_std).to(self.device)
-        action_batch = action_batch.to(self.device)
-        next_norm = ((next_batch - self.water_mean) / self.water_std).to(self.device)
-        self.model.train()
-        for _ in range(LEARN_EPOCHS):
-            self.optimizer.zero_grad()
-            loss = self.criterion(self.model(water_norm, action_batch), next_norm)
-            loss.backward()
-            self.optimizer.step()
-        self.model.eval()
-        print(f"\n📚 [在线学习 #{self.learn_count}] 完成 | 误差:{self.memory.get_average_error():.2f}")
+        # if self.memory.size() < LEARN_BATCH_SIZE:
+        #     return
+        # self.learn_count += 1
+        # batch = self.memory.sample_batch(LEARN_BATCH_SIZE)
+        # if batch is None:
+        #     return
+        # water_batch, action_batch, next_batch = batch
+        # water_norm = ((water_batch - self.water_mean) / self.water_std).to(self.device)
+        # action_batch = action_batch.to(self.device)
+        # next_norm = ((next_batch - self.water_mean) / self.water_std).to(self.device)
+        # self.model.train()
+        # for _ in range(LEARN_EPOCHS):
+        #     self.optimizer.zero_grad()
+        #     loss = self.criterion(self.model(water_norm, action_batch), next_norm)
+        #     loss.backward()
+        #     self.optimizer.step()
+        # self.model.eval()
+        # print(f"\n📚 [在线学习 #{self.learn_count}] 完成 | 误差:{self.memory.get_average_error():.2f}")
+        pass
 
     async def run(self):
         """主运行循环"""
