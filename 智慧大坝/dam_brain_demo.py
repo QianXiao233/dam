@@ -572,11 +572,11 @@ class DamBrain:
             if water >= WATER_EMERGENCY:
                 return f"🚨 应急水位！强制开闸放水，安全第一！"
             elif water >= WATER_WARNING:
-                return f"⚠️ 水位{water}({trend})，已超预警线，主动开闸放水！"
+                return f"⚠️ ({trend})，已超预警线，主动开闸放水！"
             elif prediction >= WATER_EMERGENCY:
-                return f"📈 水位{water}({trend})，预测将冲上应急水位，提前开闸！"
+                return f"📈 ({trend})，预测将冲上应急水位，提前开闸！"
             else:
-                return f"📈 水位{water}({trend})，预防性开闸，保持健康水位。"
+                return f"📈 ({trend})，预防性开闸，保持健康水位。"
         else:
             if water <= WATER_CRITICAL:
                 return f"🔴 濒死水位{water}，关闸蓄水保水！"
@@ -588,7 +588,7 @@ class DamBrain:
                 return f"✅ 当前安全，关闸省水。"
 
     def request_open_confirmation(self, water, level, explanation):
-        msg = f"⚠️ AI建议开闸 | 水位{water} | {explanation}"
+        msg = f"{explanation}"
         send_message(content=msg, msg_type="PumpNotify")
 
     def online_learn(self):
