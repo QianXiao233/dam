@@ -27,7 +27,7 @@ public class MessagelistService {
                 return;
             }
         }
-        System.out.println("ERROR:删除的消息ID不存在");
+        System.out.println("Error:删除的消息ID不存在");
     }
     //获取消息列表
     public List<Message> getMessagelist() {

@@ -19,7 +19,6 @@ var data1 = null;
 socket.onmessage = function (event) {
     // 接收并解析数据
     data1 = event.data;
-
     window.getData = function () {
         return JSON.parse(data1);
     };
@@ -29,9 +28,5 @@ socket.onmessage = function (event) {
     window.receiveWarningValue();
     console.log("数据接收，已成功处理！");
 
-};
-
-window.getData = function () {
-    return JSON.parse(data1);
 };
 

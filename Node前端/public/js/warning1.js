@@ -43,6 +43,10 @@ window.receiveWarningValue = function() {
 
     var value = parseInt(data[0][0]);
     if (isNaN(value)) return;
+    let l = document.querySelector('.current_waterl');
+    if (l) {
+    l.textContent = value;
+}
 
     // 隐藏所有顶部悬浮卡片
     hideAllTopCards();

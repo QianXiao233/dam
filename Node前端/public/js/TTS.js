@@ -1,7 +1,7 @@
 class CrossPlatformTTS {
     static VOICE_MAP = {
         'zh-CN': [
-            'Microsoft Xiaoxiao',
+            'Microsoft Yaoyao',
             'Tingting',
             'Google 普通话（中国大陆）',
             'zh-CN-Wavenet-C'

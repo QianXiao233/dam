@@ -69,13 +69,13 @@ function handlePumpNotify(message) {
     canShowPumpNotify = false;
     
     const { id, content } = message;
-    
+    const cont=`${content}`
     // 保存消息信息
     window.currentPumpNotifyId = id;
     pendingPumpMessage = message;
     
     // 显示弹窗卡片
-    shownotice(content);
+    shownotice(cont);
 }
 
 // 重写确认开闸函数（带二次确认）
@@ -118,14 +118,12 @@ function showConfirmDialog() {
 
 // 执行真正的开闸操作
 async function executeConfirmOpen() {
-    // 显示处理中状态
-    shownotice("⏳ 正在执行开闸，请稍候...");
     
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
         
-        const response = await fetch('http://192.168.10.247:5001/confirm_open', {
+        const response = await fetch('http://'+window.apiUrls.python_ip+':5001/confirm_open', {
             method: 'GET',
             signal: controller.signal,
         });
@@ -212,7 +210,7 @@ window.rejectOpen = async function() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
         
-        const response = await fetch('http://192.168.10.247:5001/reject_open', {
+        const response = await fetch('http://'+window.apiUrls.python_ip+':5001/reject_open', {
             method: 'GET',
             signal: controller.signal,
         });
@@ -262,10 +260,10 @@ async function delete_message(mid) {
 
 function shownotice(text) {
     var card = document.querySelector(".float-card");
-    var messageEl = document.querySelector(".float-card-message");
+    var messageEl = document.querySelector(".explainaion");
     
     if (card && messageEl) {
-        messageEl.textContent = text;
+        messageEl.textContent=text;
         card.classList.remove("hide");
     }
 }
