@@ -1,27 +1,3 @@
-"""
-============================================================
-  🧪 智御安澜 · 展演专用版  —  大坝AI智能决策演示
-============================================================
-  本文件为比赛展演定制，修复了生产版本的逻辑问题，
-  并针对演示场景做了优化，确保每次运行效果稳定可复现。
-
-  ⚠️ 生产环境请使用 dam_brain_websocket_confirm.py
-     （本文件专门用于比赛演示，冷却时间、候选策略等
-       均针对演示节奏调整，非生产配置）
-============================================================
-
-  演示场景：
-    【场景一】暴雨快速注水 → 水位78（预警线80之前）AI提前开闸
-    【场景二】小雨缓慢注水 → 水位105（应急线110之前）AI提前开闸
-    【场景三】开闸后AI动态保持 → 水位降速决定保持帧数
-
-  核心卖点：
-    ✅ 不是阈值到了才报警，是预测到趋势危险就提前干预
-    ✅ 同一套AI，不同来水速度做出不同决策
-    ✅ 动态保持时长，不浪费水也不冒险
-============================================================
-"""
-
 import asyncio
 import time
 import json
@@ -35,11 +11,12 @@ import websockets
 from flask import Flask, jsonify
 
 # ========== WebSocket配置 ==========
-WS_URL = "ws://192.168.10.251:8085/websocket"
+backend_url="10.186.140.99"
+WS_URL = "ws://"+backend_url+":8085/websocket"
 
 # ========== 闸门控制HTTP接口 ==========
-GATE_OPEN_URL = "http://192.168.10.251:8085/RelayControl/Open"
-GATE_CLOSE_URL = "http://192.168.10.251:8085/RelayControl/Close"
+GATE_OPEN_URL = "http://"+backend_url+":8085/RelayControl/Open"
+GATE_CLOSE_URL = "http://"+backend_url+":8085/RelayControl/Close"
 
 # ========== Flask配置 ==========
 FLASK_HOST = '0.0.0.0'
@@ -79,7 +56,7 @@ WATER_WARNING_HIGH = 110
 WATER_EMERGENCY = 110                # 应急水位线
 WATER_MAX_VALID = 200
 
-ADD_WATER_AT = 45
+ADD_WATER_AT = 35
 ADD_WATER_TO = 55
 TARGET_WATER = 55
 
@@ -117,7 +94,7 @@ def get_level_name(water: int) -> str:
     elif water <= WATER_NORMAL_HIGH:
         return "正常🟢"
     elif water <= WATER_WARNING_HIGH:
-        return "预警🟡"
+        return "超汛限水位🟡"
     else:
         return "应急🟠"
 
@@ -131,7 +108,7 @@ def send_message(content, msg_type):
 def do_send_message(param):
     try:
         response = requests.post(
-            "http://192.168.10.251:8085/api/add_message",
+            "http://"+backend_url+":8085/api/add_message",
             data=param,
             timeout=10
         )
@@ -572,11 +549,11 @@ class DamBrain:
             if water >= WATER_EMERGENCY:
                 return f"🚨 应急水位！强制开闸放水，安全第一！"
             elif water >= WATER_WARNING:
-                return f"⚠️ 水位{water}({trend})，已超预警线，主动开闸放水！"
+                return f"⚠️ ({trend})，已超预警线，主动开闸放水！"
             elif prediction >= WATER_EMERGENCY:
-                return f"📈 水位{water}({trend})，预测将冲上应急水位，提前开闸！"
+                return f"📈 ({trend})，预测将冲上应急水位，提前开闸！"
             else:
-                return f"📈 水位{water}({trend})，预防性开闸，保持健康水位。"
+                return f"📈 ({trend})，预防性开闸，保持健康水位。"
         else:
             if water <= WATER_CRITICAL:
                 return f"🔴 濒死水位{water}，关闸蓄水保水！"
@@ -588,7 +565,7 @@ class DamBrain:
                 return f"✅ 当前安全，关闸省水。"
 
     def request_open_confirmation(self, water, level, explanation):
-        msg = f"⚠️ AI建议开闸 | 水位{water} | {explanation}"
+        msg = f"{explanation}"
         send_message(content=msg, msg_type="PumpNotify")
 
     def online_learn(self):

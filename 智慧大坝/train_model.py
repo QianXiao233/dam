@@ -12,7 +12,6 @@ EPOCHS = 1000
 LEARNING_RATE = 0.001
 TRAIN_SPLIT = 0.8
 
-
 class WorldModel(nn.Module):
     """世界模型：学习水位变化规律（支持3种动作类型）"""
     def __init__(self, history_len=10, hidden_size=64, num_layers=2):
@@ -48,7 +47,6 @@ class WorldModel(nn.Module):
                 cur_w = cur_w[1:] + [nw]
                 cur_a = cur_a[1:] + [future_actions[i]]
         return preds
-
 
 def train():
     print(f"\n{'='*60}")
