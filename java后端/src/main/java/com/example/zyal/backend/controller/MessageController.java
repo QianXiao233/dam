@@ -45,4 +45,24 @@ public class MessageController {
     public int get_messagecpunt() {
         return messagelistService.getMessageCount();
     }
+    //启动本地三维应用（UE5 exe）接口：POST /api/startApp?exePath=xxx
+    @PostMapping("/startApp")
+    public Map<String, Object> startApp(@RequestParam String exePath) {
+        Map<String, Object> map = new HashMap<>();
+        if (exePath == null || exePath.trim().isEmpty()) {
+            map.put("success", false);
+            map.put("message", "exePath 不能为空");
+            return map;
+        }
+        try {
+            ProcessBuilder pb = new ProcessBuilder(exePath);
+            pb.start();
+            map.put("success", true);
+            map.put("message", "应用启动成功");
+        } catch (Exception e) {
+            map.put("success", false);
+            map.put("message", e.getMessage());
+        }
+        return map;
+    }
 }
