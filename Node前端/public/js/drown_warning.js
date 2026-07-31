@@ -39,7 +39,7 @@ async function drown() {
             
             const result = await messageResponse.json();
             
-            if (result && result.type === "DrownWarning") {
+            if (result && result.type === "DrownWarning"||result.type ==="PersonStatus") {
                 handleWarning(result);
             }
         }
