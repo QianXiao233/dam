@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+    <!-- <script src="/js/backend_waf.js"></script> -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>智御安澜 · 智慧水利导航</title>
+    <title>智护库安 · 智慧水利导航</title>
     <style>
         * {
             margin: 0;
@@ -22,7 +23,7 @@
         }
         #userinfo1{
             color: yellow;
-            font-weight: bolder;
+            font-weight: 650;
         }
 
         @keyframes fadeIn {
@@ -38,9 +39,9 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: 
-                linear-gradient(rgba(0, 150, 255, 0.08) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 150, 255, 0.08) 1px, transparent 1px);
+            background-image:
+                    linear-gradient(rgba(0, 150, 255, 0.08) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 150, 255, 0.08) 1px, transparent 1px);
             background-size: 40px 40px;
             pointer-events: none;
             z-index: 0;
@@ -243,7 +244,7 @@
 <div class="top-bar">
     <div class="logo-area">
         <span class="logo-icon">🌊</span>
-        <span class="logo-text">智御安澜 · 智慧水利</span>
+        <span class="logo-text">智护库安 · 智慧水利</span>
     </div>
     <div class="nav-buttons">
         <div class="user-info" id="userInfo"></div>
@@ -253,20 +254,41 @@
 
 <div class="container">
     <div class="welcome">
-        <h1><span id="userinfo1"></span>，欢迎使用智慧水利综合平台</h1>
+        <h1><span id="userinfo1"></span>，欢迎使用智慧水利管控平台</h1>
         <p>请选择您需要进入的系统模块</p>
     </div>
     <div class="grid" id="cardGrid"></div>
     <div class="footer">
-        <span>© 智御安澜 · 数字孪生水利系统 | 安全可靠 · 智慧决策</span>
+        <span>© 智护库安 · 数字孪生水利系统 | 安全可靠 · 智慧决策</span>
     </div>
 </div>
 <script src="/js/apiUtils.js"></script>
 <script src="/js/auth.js"></script>
 <script>
     let user_info = null;
-    
-    // 卡片定义
+
+    // ========== 先定义所有处理函数 ==========
+    function startApp(exePath) {
+        fetch('http://127.0.0.1:8085/api/startApp?exePath=' + encodeURIComponent(exePath), {
+            method: 'POST'
+        })
+            .then(response => response.text())
+            .then(text => {
+                console.log('服务器返回:', text);
+                try {
+                    const data = JSON.parse(text);
+                    alert(data.success ? '启动成功！' : '启动失败：' + (data.message || '未知错误'));
+                } catch (e) {
+                    alert('服务器返回：' + text);
+                }
+            })
+            .catch(error => {
+                console.error('请求失败:', error);
+                alert('请求失败：' + error.message);
+            });
+    }
+
+    // ========== 卡片定义 ==========
     const cards = [
         {
             id: "digital_twin",
@@ -277,7 +299,6 @@
             url: "driver.html"
         },
         {
-           
             id: "monitor",
             title: "智能溺水监测系统",
             icon: "🏊‍♂️",
@@ -300,57 +321,58 @@
             desc: "IP/MAC 识别 · 黑白名单规则 · 流量监控",
             tag: "安全防护",
             url: "waf.html",
-            requiredLevel: 0   // 仅 level 0 管理员可见
+            requiredLevel: 7
+        },
+        {
+            id: "digital",
+            title: "数字孪生平台",
+            icon: "🔢",
+            desc: "数字孪生 实时模拟",
+            tag: "数字孪生",
+            url: "javascript:startApp('E:\\\\Users\\\\CKJ\\\\Desktop\\\\UE\\\\Windows\\\\dam.exe');",
+            requiredLevel: 7
         }
     ];
 
-    // 权限映射 (WAF管理仅管理员可访问)
+    // 权限映射
     const rolePermissions = {
         3: { canAccess: [0] },
         2: { canAccess: [1] },
         1: { canAccess: [2] },
-        0: { canAccess: [0, 1, 2, 3] }
+        0: { canAccess: [0, 1, 2, 3,4] }
     };
 
-    // 主函数：所有逻辑都在这里
+    // 主函数
     (async function() {
         try {
-            // 获取用户信息
             user_info = await yanzheng();
-            
-            // 检查登录状态
+
             if (!user_info) {
                 alert('请先登录');
                 window.location.href = 'index.html';
                 return;
             }
-            
+
             const loggedUser = user_info.username;
             const level = user_info.level;
-            
-            // 获取当前用户可访问的卡片索引
+
             let accessibleIndices = [];
             if (rolePermissions[level]) {
                 accessibleIndices = rolePermissions[level].canAccess;
-            } else {
-                accessibleIndices = [];
             }
-            
-            // 显示用户信息及当前时间
+
             const userInfoDiv = document.getElementById('userInfo');
             const updateTime = () => {
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
                 userInfoDiv.innerHTML = `👤 ${loggedUser} &nbsp;|&nbsp; <span class="time-display">${timeStr}</span>`;
             };
-            document.getElementById('userinfo1').innerText=`${loggedUser}`
+            document.getElementById('userinfo1').innerText = `${loggedUser}`;
             updateTime();
             setInterval(updateTime, 1000);
-            
-            // 生成卡片（根据 requiredLevel 过滤不可见卡片）
+
             const grid = document.getElementById('cardGrid');
             cards.forEach((card, idx) => {
-                // requiredLevel 不为 undefined 且不匹配当前用户等级 → 直接隐藏
                 if (card.requiredLevel !== undefined && card.requiredLevel !== level) {
                     return;
                 }
@@ -365,14 +387,16 @@
                 `;
                 cardDiv.addEventListener('click', () => {
                     if (isAllowed) {
-                        window.location.href=card.url;
+                        // 原始逻辑不变，直接使用 window.location.href
+                        // 浏览器会自动处理 javascript: 协议
+                        window.location.href = card.url;
                     } else {
                         alert('⚠️ 您没有权限访问该系统！请联系管理员。');
                     }
                 });
                 grid.appendChild(cardDiv);
             });
-            
+
         } catch (error) {
             console.error('初始化失败:', error);
             alert('获取用户信息失败，请重新登录');
@@ -380,13 +404,14 @@
         }
     })();
 
-    // 退出登录（可以放在外面，不依赖user_info）
+    // 退出登录
     document.getElementById('logoutBtn').addEventListener('click', () => {
         if (confirm('确认退出登录吗？')) {
             localStorage.removeItem('token');
             window.location.href = 'index.html';
         }
     });
+
 </script>
 </body>
 </html>
