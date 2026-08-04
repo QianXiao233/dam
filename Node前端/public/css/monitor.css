@@ -345,6 +345,14 @@ button {
     background-size: cover;
 }
 
+/* 临时:空区域可视化(看位置用,可删) */
+video.r01 {
+    background: rgba(0, 180, 255, 0.15);
+    border: 1px dashed rgba(0, 229, 255, 0.8);
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
 .rcenter {
     width: 98%;
     height: 21%;

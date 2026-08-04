@@ -21,6 +21,15 @@ socket.onmessage = function (event) {
     window.getData = function () {
         return JSON.parse(data1);
     };
+const socket = new WebSocket(window.apiUrls.SOCKET_URL);
+socket.onmessage = function (event) {
+    data1 = event.data;
+    window.getData = function () {
+        return JSON.parse(data1);
+    }
+    window.getData = function () {}
+}
+socket.onopen = function (event) {}
     //接收数据后更新实时水位图表
     window.updatewaterLevelChart();
     //大坝震动检测

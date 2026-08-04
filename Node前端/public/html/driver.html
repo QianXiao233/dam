@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +12,7 @@
     <script src="/js/alert-bar-scroll.js"></script>
     <style>
         /* ---- 3.1 加载进度条 ---- */
-        #container { 
+        #container {
             position: absolute;
             width: 400px;
             height: 16px;
@@ -22,10 +21,10 @@
             margin-left: -200px;
             margin-top: -8px;
             border-radius: 8px;
-            border: 1px solid #009999;  
+            border: 1px solid #009999;
             overflow: hidden;
             z-index: 25;
-        } 
+        }
         #per {
             height: 100%;
             width: 0px;
@@ -35,7 +34,7 @@
         }
 
         /* ---- 3.2 头部布局 ---- */
-        .header-left { 
+        .header-left {
             display: flex;
             align-items: center;
             gap: 20px;
@@ -67,7 +66,7 @@
             color: #ffffff;
             line-height: 40px;
             z-index: 999999;
-            background: transparent;     
+            background: transparent;
             pointer-events: auto;
         }
 
@@ -122,7 +121,7 @@
      }
 </script>
 <script src="/js/three.js" type="module"></script>
-    
+
     <!-- ==================== 4. 用户验证脚本 ==================== -->
     <script>
         let user = yanzheng();
@@ -157,7 +156,7 @@
     border-radius: 16px;
     box-shadow: 0 25px 50px -8px rgba(0,0,0,0.8);
     padding: 28px 32px;
-    color: #e5f0ff;
+    color: #ffffff;
     font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
     transform: scale(0.96);
     transition: transform 0.2s;
@@ -225,22 +224,22 @@
     text-align: center;
     padding: 30px;
     color: #9cb8d4;
-} 
+}
     </style>
 </head>
 
 <body>
     <!-- ==================== 5. Three.js 渲染层 ==================== -->
     <div id="webgl"></div>
-    
+
     <!-- ==================== 6. 加载进度条 ==================== -->
     <div id="container">
         <div id="per"></div>
     </div>
-    
+
     <!-- ==================== 7. 主仪表盘 ==================== -->
     <div class="dashboard">
-        
+
         <!-- ---- 7.1 头部栏 ---- -->
         <div class="header">
             <div class="header-left">
@@ -252,10 +251,10 @@
                 <span id="return_navigation"><img src="/images/logout.png">返回导航</span>
             </div>
         </div>
-        
+
         <!-- ==================== 8. 左侧面板 ==================== -->
         <div class="left-panel" style="height: 100%;">
-            
+
             <!-- 8.1 坝体信息概览 -->
             <div class="panel-section" style="height: 26%;">
                 <div class="panel-header">
@@ -289,12 +288,12 @@
                 </div>
                 <div class="chart-container" id="vibrationChart"></div>
             </div>
-            
+
         </div>
-        
+
         <!-- ==================== 9. 右侧面板 ==================== -->
         <div class="right-panel" style="height: 92%;">
-            
+
             <!-- 9.1 水位趋势 -->
             <div class="panel-section" style="height: 30%;">
                 <div class="panel-header">
@@ -304,7 +303,7 @@
                 </div>
                 <div class="chart-container" id="waterLevelChart"></div>
             </div>
-            
+
             <!-- 9.3 周界安全 -->
             <div class="panel-section" style="height: 35.5%;">
                 <div class="panel-header">
@@ -338,7 +337,7 @@
                     </div>
                 </div>
             </div>
-            
+
         </div>
     </div>
 
@@ -353,13 +352,13 @@
             }
             document.getElementById('user_name').textContent=`${user_info.username}`;
         });
-        
+
         // 10.2 返回导航
         document.getElementById('return_navigation').addEventListener("click",function(){
             window.location.href='navigation.html';
         });
     </script>
-    
+
     <!-- ==================== 11. 功能模块脚本 ==================== -->
     <script type="importmap">
         {
@@ -372,16 +371,17 @@
     <script src="/js/three.js" type="module"></script>
     <script src="/js/update_time.js"></script>
     <script src="/js/dam_chart.js"></script>
-    <script src="/js/water_level_rt_chart.js"></script>
-    <script src="/js/water_level_rt_data.js"></script>
-    <script src="/js/vibration_chart.js"></script>
-    <script src="/js/vibration_data.js"></script>
-    <script src="/js/water_level_p_chart.js"></script>
-    <script src="/js/water_level_p_data.js"></script>
-    <script src="/js/water_quality_chart.js"></script>
+<!--    <script src="/js/water_level_rt_chart.js"></script>-->
+<!--    <script src="/js/water_level_rt_data.js"></script>-->
+<!--    <script src="/js/vibration_chart.js"></script>-->
+<!--    <script src="/js/vibration_data.js"></script>-->
+<!--    <script src="/js/water_level_p_chart.js"></script>-->
+<!--    <script src="/js/water_level_p_data.js"></script>-->
+<!--    <script src="/js/water_quality_chart.js"></script>-->
     <script src="/js/camera_chart.js"></script>
-    <script src="/js/camera_data.js"></script>
-    <script src="/js/gauge_chart.js"></script>
- 
+<!--    <script src="/js/camera_data.js"></script>-->
+<!--    <script src="/js/gauge_chart.js"></script>-->
+    <script src="/js/water_level_rt_chart.js"></script>
+
 </body>
 </html>

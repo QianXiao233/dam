@@ -10,9 +10,5 @@ window.apiUrls = {
     WATER_CTL_OPEN_URL: "http://"+BASE_URL+":8085/RelayControl/Open",
     WATER_CTL_CLOSE_URL: "http://"+BASE_URL+":8085/RelayControl/Close",
     WATER_CTL_WARNING_URL: "http://"+BASE_URL+":5000/predict_result",
-    java_url:"http://"+BASE_URL+":8085/api",
-    // UE5 三维模型服务地址（预留接口）
-    UE5_URL: "",
-    // UE5 三维应用（exe）路径：点击"数字孪生仿真"按钮时通过后端接口启动
-    UE5_EXE_PATH: ""
+    java_url:"http://"+BASE_URL+":8085/api"
 };
