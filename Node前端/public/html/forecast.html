@@ -2,6 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" href="/logo/favicon.ico" type="image/x-icon">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>智护库安 智控大坝泄洪系统</title>
     <script src="/js/apiUtils.js"></script>
@@ -598,6 +599,62 @@
           gap: 5px;
         }
       }
+      /* 语音控制状态指示灯（位于智能大脑面板内） */
+      #voiceStatus {
+        margin-top: 5px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        text-align: center;
+        color: #8ab8ff;
+        background: rgba(0, 40, 80, 0.4);
+        border: 1px solid rgba(0, 200, 255, 0.25);
+        transition: all 0.3s ease;
+        position: relative;
+        z-index: 1;
+      }
+
+      #voiceStatus::before {
+        content: "";
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 6px;
+        background: #888;
+        vertical-align: middle;
+      }
+
+      #voiceStatus.on {
+        color: #00ff88;
+        border-color: rgba(0, 255, 136, 0.45);
+      }
+
+      #voiceStatus.on::before {
+        background: #00ff88;
+        box-shadow: 0 0 6px #00ff88;
+        animation: voiceBlink 1.2s ease-in-out infinite;
+      }
+
+      #voiceStatus.warn {
+        color: #ffb347;
+        border-color: rgba(255, 179, 71, 0.5);
+      }
+
+      #voiceStatus.warn::before {
+        background: #ffb347;
+        box-shadow: 0 0 6px #ffb347;
+        animation: voiceBlink 0.8s ease-in-out infinite;
+      }
+
+      #voiceStatus.off {
+        opacity: 0.75;
+      }
+
+      @keyframes voiceBlink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+      }
     </style>
   </head>
   <script type="importmap">
@@ -754,7 +811,7 @@
     <div class="left-panel">
       <div class="panel-header">
         <div class="panel-icon"></div>
-        <div class="panel-title">实时水位</div>
+        <div class="panel-title">水位趋势</div>
         <div class="panel-subtitle">Water level trend</div>
       </div>
       <div style="position: absolute; top: 4%; width: 98%; height: 17%">
@@ -975,16 +1032,15 @@
           </div>
         </div>
       </div>
-
-      <!-- ========= AI 智能大脑状态面板（替代预演） ========= -->
-      <div class="left-radio" style="position: absolute; top: 65%; left: 2%; width: 96%">
+      <!-- ========= AI 智能大脑状态面板 ========= -->
+      <div class="left-radio brain-head" style="position: absolute; top: 65%; left: 2%; width: 96%">
         <div class="panel-header">
           <div class="panel-icon"></div>
           <div class="panel-title">智能大脑</div>
           <div class="panel-subtitle">AI Brain</div>
         </div>
       </div>
-      <div class="brain-status-panel" id="brainStatusPanel" style="position: absolute; top: 69%; left: 2%; width: 96%; height: 16%">
+      <div class="brain-status-panel" id="brainStatusPanel" style="position: absolute; top: 69%; left: 2%; width: 96%; height: 20%">
         <div class="brain-header">
           <span class="brain-title">状态</span>
           <span class="brain-status-badge offline" id="brainStatusBadge">离线</span>
@@ -1018,6 +1074,8 @@
         <div class="brain-error-bar">
           <div class="brain-error-fill" id="brainErrorFill" style="width: 0%"></div>
         </div>
+        <!-- 语音控制状态指示灯（voice_control.js 自动更新） -->
+        <div id="voiceStatus" class="voice-status off">语音控制启动中…</div>
       </div>
     </div>
 
@@ -1752,9 +1810,10 @@
   <script src="/js/ajax.js"></script>
   <script src="/js/AIBrain_NotifyHandler.js"></script>
   <script src="/js/water_level_rt_data1.js"></script>
-  <script src="/js/water_level_rt_chart copy.js"></script>
+  <script src="/js/water_level_rt_chart_new.js"></script>
   <script src="/js/warning1.js"></script>
   <script src="/js/TTS.js"></script>
+  <script src="/js/voice_control.js"></script>
   <!-- <script src="/js/water_predict_warning.js"></script> -->
   <script src="/js/update_time.js"></script>
 
