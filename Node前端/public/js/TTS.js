@@ -1,7 +1,7 @@
 class CrossPlatformTTS {
     static VOICE_MAP = {
         'zh-CN': [
-            'Microsoft Yaoyao',
+            'Microsoft Xiaoxiao',
             'Tingting',
             'Google 普通话（中国大陆）',
             'zh-CN-Wavenet-C'
@@ -48,11 +48,14 @@ class CrossPlatformTTS {
         
         this.currentUtterance = utterance;
         
-        utterance.onstart = () => { this.isPlaying = true; };
-        utterance.onend = () => { this.isPlaying = false; this.currentUtterance = null; };
-        utterance.onerror = () => { this.isPlaying = false; this.currentUtterance = null; };
-        
-        speechSynthesis.speak(utterance);
+        // 返回 Promise：播报完成（onend/onerror）时 resolve，方便调用方等待播报结束
+        return new Promise((resolve) => {
+            utterance.onstart = () => { this.isPlaying = true; };
+            utterance.onend = () => { this.isPlaying = false; this.currentUtterance = null; resolve(); };
+            utterance.onerror = () => { this.isPlaying = false; this.currentUtterance = null; resolve(); };
+            
+            speechSynthesis.speak(utterance);
+        });
     }
     
     // 设置默认语速

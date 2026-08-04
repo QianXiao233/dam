@@ -34,16 +34,15 @@ app.use('/model', (req, res, next) => {
   
   // 支持断点续传
   res.header('Accept-Ranges', 'bytes');
-  
-  // 大文件缓存策略
-  res.header('Cache-Control', 'public, max-age=604800, immutable');
+
+  // 禁用强缓存（每次回源验证，文件更新立即生效）
+  res.header('Cache-Control', 'no-cache');
   
   next();
 });
 
 // 3. 静态文件服务（模型文件夹）
 app.use('/model', express.static(path.join(__dirname, 'public/model'), {
-  maxAge: 604800000, // 7 天
   etag: true,
   lastModified: true,
   setHeaders: (res, filePath) => {
@@ -52,18 +51,22 @@ app.use('/model', express.static(path.join(__dirname, 'public/model'), {
       res.setHeader('Content-Type', 'application/octet-stream');
       res.setHeader('Content-Disposition', 'inline; filename="model.glb"');
       res.setHeader('Accept-Ranges', 'bytes');
-      res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
     }
   }
 }));
 
 // 4. 其他静态文件
 app.use(express.static('public', {
-  maxAge: 86400000, // 1 天
+  // 禁用强缓存（每次回源验证）
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+  }
 }));
 
 app.use(express.static('public/html', {
-  maxAge: 86400000,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+  }
 }));
 // ======================== 启动 ========================
 app.listen(PORT, '0.0.0.0', () => {
