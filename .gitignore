@@ -28,3 +28,6 @@ Thumbs.db
 # Temp / Debug
 test-*.js
 *.bak
+
+# 本地环境配置，不再追踪
+Node前端/public/js/apiUtils.js
