@@ -1,3 +1,31 @@
-# ========== 大文件（模型、压缩包等）==========
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Java / Maven
+java后端/target/
+*.jar
+*.class
+
+# Node
+Node前端/node_modules/
+Node前端/public/build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 3D models (too large)
 *.glb
 *.gltf
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp / Debug
+test-*.js
+*.bak
+

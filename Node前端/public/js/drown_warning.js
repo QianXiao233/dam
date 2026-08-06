@@ -40,7 +40,10 @@ async function drown() {
             const result = await messageResponse.json();
             
             if (result && result.type === "DrownWarning") {
-                handleWarning(result);
+                handleWarning(result,"Drown");
+            }
+            else if(result&&result.type ==="PersonStatus"){
+                handleWarning(result,"Person");
             }
         }
         
@@ -56,29 +59,40 @@ async function drown() {
     }
 }
 
-function handleWarning(message) {
+function handleWarning(message,type) {
     if (canShowModal === false) return; // 已有弹窗正在显示
     
     canShowModal = false;
     
     const { id, content } = message;
-    
+    var title;
+    if(type==="Drown")title="发现疑似人员落水！";
+    else if(type==="Person")title="警报！警报！库区临水区域发现人员逗留，请安保人员立刻巡查！";
     // 更新弹窗内容
     const messageElement = document.getElementById('warn_info');
     if (messageElement) {
         messageElement.textContent = content;
     }
+    // 更新弹窗标题
+    const titleElement = document.getElementById('warn_title');
+    if (titleElement) {
+        titleElement.textContent = title;
+    }
     
     // 显示弹窗
     showModal();
-    audio.play();
+    //audio.play();
+    let tts = new CrossPlatformTTS();
+    tts.setDefaultRate(1.5);
+    tts.speak(title);
+    
     
     // 3秒后删除消息并关闭弹窗
     setTimeout(async () => {
         await delete_message(id);
         closeModal();
         canShowModal = true;
-    }, 3000);
+    }, 5000);
 }
 
 async function delete_message(mid) {

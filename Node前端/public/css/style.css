@@ -6,7 +6,7 @@
 
 @font-face {
     font-family: "SourceHanSansCN-Bold";
-    src: url(../fonts/SourceHanSansCN-Bold.otf);
+    /*src: url(../fonts/SourceHanSansCN-Bold.otf);*/
     font-display: swap;
 }
 

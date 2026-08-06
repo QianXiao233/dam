@@ -1,5 +1,4 @@
 async function login() {
-    // 清除错误提示
     const errors = ['username-error', 'password-empty-error', 'password-error-msg'];
     errors.forEach(id => {
         const el = document.getElementById(id);
@@ -7,10 +6,6 @@ async function login() {
     });
     
     const username = document.getElementById('username').value;
-    if(username=="' or ''='"){
-        document.getElementsByClassName('warning-modal')[0].classList.add('active');
-        return;
-    }
     if (!username) {
         document.getElementById('username-error').style.display = 'block';
         return;
@@ -45,7 +40,6 @@ async function login() {
             if (result.token) {
                 localStorage.setItem('token', result.token);
             }
-            //alert('登录成功！');
             window.location.href = 'navigation.html';
         } else {
             if(result.message=="用户名或密码错误"){

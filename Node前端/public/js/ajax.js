@@ -54,7 +54,7 @@ function manualToggle() {
 // 开启请求
 function turnOn() {
     const xhr = new XMLHttpRequest();
-    xhr.open('GET', "http://192.168.10.251:8085/RelayControl/Open", true);
+    xhr.open('GET', window.apiUrls.WATER_CTL_OPEN_URL, true);
     xhr.send();
     console.log("开启请求已发送");
     
@@ -66,7 +66,7 @@ function turnOn() {
 // 关闭请求
 function turnOff() {
     const xhr = new XMLHttpRequest();
-    xhr.open('GET', "http://192.168.10.251:8085/RelayControl/Close", true);
+    xhr.open('GET', window.apiUrls.WATER_CTL_CLOSE_URL, true);
     xhr.send();
     console.log("关闭请求已发送");
     
@@ -75,45 +75,10 @@ function turnOff() {
     };
 }
 
-// 自动水位控制
+// 自动水位控制（已禁用自动开闸，仅保留手动控制）
 window.waterController = function() {
-    try {
-        var data = window.getData();
-        if (!data || !data[0] || data[0].length === 0) {
-            console.error('❌ getData 返回数据格式错误');
-            return;
-        }
-        var value = data[0][0];
-        // 核心逻辑：自动控制
-        if (value >= 110 && !isRelayOn) {
-            // 水位过高且继电器关闭 → 自动开启
-            console.log("💧【自动控制】水位超过110，自动开启水闸 (水位:", value, ")");
-            turnOn();
-            isRelayOn = true;
-            isManualOverride = false;  // 自动开启，清除手动优先标记
-            lastAction = 'auto';
-            updateUI();
-            
-        } else if (value < 110 && isRelayOn) {
-            // 水位正常且继电器开启 → 需要判断是否能自动关闭
-            if (isManualOverride) {
-                // ⚠️ 重要：手动开启的水闸，自动不能关闭
-                console.log("🚫【自动控制】水闸由手动开启，自动关闭被阻止！(水位:", value, ")");
-            } else {
-                // 自动开启的水闸，可以自动关闭
-                console.log("💧【自动控制】水位低于110，自动关闭水闸 (水位:", value, ")");
-                turnOff();
-                isRelayOn = false;
-                lastAction = 'auto';
-                updateUI();
-            }
-        } else {
-            console.log("✅【自动控制】水位正常，无需操作");
-        }
-        
-    } catch (error) {
-        console.error('❌ 自动控制执行失败:', error);
-    }
+    // 功能已屏蔽 —— 不再根据水位自动开闸/关闸
+    // 仅保留手动按钮控制逻辑
 }
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WAF 防火墙管理 - 智御安澜</title>
+  <link rel="stylesheet" href="/css/waf.css">
+  <script src="/js/apiUtils.js"></script>
+  <script src="/js/auth.js"></script>
+</head>
+<body>
+
+  <!-- 顶部导航 -->
+  <header class="waf-header">
+    <div>
+      <h1>🛡️ WAF 防火墙管理</h1>
+      <div class="subtitle">智御安澜 · Web 应用防火墙</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <span id="headerUser" style="font-size:13px;color:var(--text-secondary);">验证中...</span>
+      <div class="status-badge">
+        <span class="status-dot online" id="statusDot"></span>
+        <span id="statusText">运行中</span>
+      </div>
+      <a href="/navigation.html" class="back-link">← 返回导航</a>
+    </div>
+  </header>
+
+  <!-- 统计卡片 -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card">
+      <div class="label">总请求数</div>
+      <div class="value cyan" id="statTotal">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">已放行</div>
+      <div class="value green" id="statAllowed">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">已拦截</div>
+      <div class="value red" id="statBlocked">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">连接设备</div>
+      <div class="value orange" id="statDevices">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">拦截规则</div>
+      <div class="value yellow" id="statRules">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">🚨 风控上报</div>
+      <div class="value red" id="statHookReports">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">🤖 自动拉黑</div>
+      <div class="value red" id="statHookBanned">0</div>
+    </div>
+  </div>
+
+  <!-- 模式切换 + 操作 -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>⚙️ 防护模式</h2>
+      <div class="actions">
+        <div class="mode-switch">
+          <span class="mode-label" id="modeLabel">黑名单模式</span>
+          <div class="toggle" id="modeToggle" onclick="toggleMode()">
+            <div class="knob"></div>
+          </div>
+        </div>
+        <button class="btn" onclick="refreshAll()">🔄 刷新</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 规则管理 -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>📋 黑白名单规则</h2>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="showAddRuleModal()">＋ 添加规则</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:80px;">类型</th>
+              <th style="width:80px;">目标</th>
+              <th>值 (IP / MAC)</th>
+              <th>备注</th>
+              <th style="width:80px;">命中</th>
+              <th>创建时间</th>
+              <th style="width:80px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="rulesTableBody">
+            <tr><td colspan="6"><div class="empty-state"><div class="icon">📋</div>暂无规则，点击上方按钮添加</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 设备列表 -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>💻 连接设备列表</h2>
+      <div style="font-size:12px;color:var(--text-secondary);">点击设备 IP 可快速添加为规则</div>
+    </div>
+    <div class="panel-body">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>IP 地址</th>
+              <th>状态</th>
+              <th>请求数</th>
+              <th>最后访问</th>
+              <th style="width:120px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="devicesTableBody">
+            <tr><td colspan="5"><div class="empty-state"><div class="icon">💻</div>暂无设备数据</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 风控上报记录 -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>🚨 前端风控上报记录</h2>
+      <div id="hookThresholdHint" style="font-size:12px;color:var(--text-secondary);">加载中...</div>
+    </div>
+    <div class="panel-body">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>IP 地址</th>
+              <th>触发次数</th>
+              <th>阈值</th>
+              <th>状态</th>
+              <th>首次上报</th>
+              <th>最近上报</th>
+              <th style="width:80px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="hookReportsBody">
+            <tr><td colspan="7"><div class="empty-state"><div class="icon">🚨</div>暂无风控上报记录</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加规则弹窗 -->
+  <div class="modal-overlay" id="addRuleModal">
+    <div class="modal-content">
+      <h3>添加规则</h3>
+      <div class="form-group">
+        <label>规则类型</label>
+        <select id="ruleType">
+          <option value="block">🚫 拦截 (黑名单)</option>
+          <option value="allow">✅ 放行 (白名单)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label id="ruleValueLabel">IP 地址</label>
+        <input type="text" id="ruleValue" placeholder="例如: 192.168.1.100">
+        <div class="hint" id="ruleValueHint">支持完整 IP 地址</div>
+      </div>
+      <div class="form-group">
+        <label>备注说明</label>
+        <input type="text" id="ruleComment" placeholder="例如: 禁止某设备访问" maxlength="50">
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeAddRuleModal()">取消</button>
+        <button class="btn btn-primary" onclick="addRule()">确认添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 权限验证 ==================== -->
+  <script>
+    // 验证登录状态 + 权限（仅 level 0 管理员可访问 WAF）
+    (async function() {
+      try {
+        const userInfo = await yanzheng();
+        if (!userInfo) {
+          alert('请先登录');
+          window.location.href = '/index.html';
+          return;
+        }
+        if (userInfo.level !== 0) {
+          alert('⚠️ 权限不足！仅管理员可访问 WAF 防火墙管理。');
+          window.location.href = '/navigation.html';
+          return;
+        }
+        // 验证通过，显示用户名
+        document.getElementById('headerUser').textContent = '👤 ' + userInfo.username;
+      } catch (err) {
+        console.error('[WAF] 权限验证失败:', err);
+        alert('身份验证失败，请重新登录');
+        window.location.href = '/index.html';
+      }
+    })();
+  </script>
+
+  <script src="/js/waf.js"></script>
+</body>
+</html>

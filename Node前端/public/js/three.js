@@ -128,4 +128,10 @@ if (water) {
     }
   }
 }
-
+if (water){
+    const height = window.getData()[1][0]/2;
+    if (height) {
+        const newheight = (5 / 6) * height + 400;
+        water.position.y = newheight;
+    }
+}
