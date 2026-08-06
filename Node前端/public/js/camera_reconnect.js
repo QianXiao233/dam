@@ -1,89 +1,93 @@
 /**
  * 摄像头画面自动重连 —— 溺水监测系统
  *
- * 功能：
- *  - 监听所有摄像头画面（img[id*="video_feed"]）的加载状态
- *  - 画面请求失败（error）后，每 3 秒自动重连（带时间戳强制重新请求）
- *  - 画面恢复（load）后自动停止重连
- *  - 页面隐藏时暂停重连，回到页面立即重试一次
+ * 背景：摄像头画面为 MJPEG 长连接（img 加载 multipart 流）。
+ *   ERR_CONNECTION_RESET 200 (OK) 这类"连接建立后被重置"的断流，
+ *   浏览器不会触发 img 的 error 事件，仅靠事件监听无法感知断线。
+ *
+ * 方案：每 3 秒心跳强制刷新所有画面（时间戳重新请求）。
+ *   - 正常画面：周期性刷新保持连接新鲜
+ *   - 失败/断流画面：3 秒内自动恢复
+ *   - error 事件仍保留：触发时立即刷新（不等心跳）
+ *   - 页面隐藏时暂停心跳，回到页面立即刷新一次
  */
 (function () {
   'use strict';
 
-  var RECONNECT_INTERVAL = 3000; // 重连间隔 3 秒
+  var HEARTBEAT_INTERVAL = 3000; // 心跳/重连间隔 3 秒
+  var imgs = [];
+  var heartbeatTimer = null;
 
-  function setupAutoReconnect(img) {
-    if (!img || img.__cameraReconnect) return; // 避免重复绑定
-    img.__cameraReconnect = true;
-
-    var reconnectTimer = null;
-
-    function getBaseSrc() {
-      // 缓存原始地址（去掉时间戳参数），重连时只更新时间戳
-      if (!img.dataset.baseSrc) {
-        img.dataset.baseSrc = img.src.split('?')[0];
-      }
-      return img.dataset.baseSrc;
+  function getBaseSrc(img) {
+    // 缓存原始地址（去掉时间戳参数），刷新时只更新时间戳
+    if (!img.dataset.baseSrc) {
+      img.dataset.baseSrc = img.src.split('?')[0];
     }
-
-    function stopReconnect() {
-      if (reconnectTimer) {
-        clearInterval(reconnectTimer);
-        reconnectTimer = null;
-      }
-    }
-
-    function startReconnect() {
-      if (reconnectTimer) return; // 已有一个定时器，不重复
-      reconnectTimer = setInterval(reconnect, RECONNECT_INTERVAL);
-      console.warn('[摄像头] 画面加载失败，每' + (RECONNECT_INTERVAL / 1000) + '秒尝试重连:', img.id || img.src);
-    }
-
-    function reconnect() {
-      if (!img) return;
-      var base = getBaseSrc();
-      // 加时间戳强制发起新请求，绕过浏览器对失败连接的处理
-      img.src = base + (base.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now();
-    }
-
-    // 加载失败：启动每 3 秒重连
-    img.addEventListener('error', function () {
-      // 弹窗放大图（动态创建）不参与重连
-      if (img.id === 'modalImage') return;
-      startReconnect();
-    });
-
-    // 画面恢复：停止重连
-    img.addEventListener('load', function () {
-      if (reconnectTimer) {
-        stopReconnect();
-        console.log('[摄像头] 画面已恢复:', img.id || img.src);
-      }
-    });
-
-    // 页面隐藏时暂停重连，避免后台无效请求；回到页面立即重试
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) {
-        stopReconnect();
-      } else if (reconnectTimer) {
-        reconnect();
-      }
-    });
+    return img.dataset.baseSrc;
   }
 
-  // 页面加载完成后为所有摄像头画面绑定重连
-  function init() {
-    var imgs = document.querySelectorAll('img[id*="video_feed"]');
-    for (var i = 0; i < imgs.length; i++) {
-      var img = imgs[i];
-      setupAutoReconnect(img);
-      // 处理初始化之前就已加载失败的画面：
-      // 若 error 事件发生在绑定之前（complete 但无图像内容），立即启动重连
-      if (img.complete && img.naturalWidth === 0 && img.id !== 'modalImage') {
-        img.dispatchEvent(new Event('error'));
-      }
+  function refresh(img, isError) {
+    if (!img) return;
+    var base = getBaseSrc(img);
+    // 加时间戳强制发起新请求，绕过浏览器对失败/挂起连接的处理
+    img.src = base + (base.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now();
+    if (isError) {
+      console.warn('[摄像头] 画面加载失败，立即重连:', img.id || img.src);
     }
-    console.log('[摄像头] 自动重连已启用，覆盖 ' + imgs.length + ' 路画面');
+  }
+
+  function refreshAll() {
+    for (var i = 0; i < imgs.length; i++) {
+      refresh(imgs[i], false);
+    }
+  }
+
+  function startHeartbeat() {
+    if (heartbeatTimer) return;
+    heartbeatTimer = setInterval(refreshAll, HEARTBEAT_INTERVAL);
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  }
+
+  function init() {
+    imgs = Array.prototype.slice.call(document.querySelectorAll('img[id*="video_feed"]'))
+      .filter(function (img) { return img.id !== 'modalImage'; });
+
+    imgs.forEach(function (img) {
+      // error 事件：立即重连（不等心跳）
+      img.addEventListener('error', function () {
+        refresh(img, true);
+      });
+      // load 事件：加载成功，无需处理（心跳会保持新鲜）
+      img.addEventListener('load', function () { /* 占位：保持连接语义清晰 */ });
+    });
+
+    // 初始化前就已失败的画面（error 事件发生在绑定之前）：立即刷新
+    imgs.forEach(function (img) {
+      if (img.complete && img.naturalWidth === 0) {
+        refresh(img, true);
+      }
+    });
+
+    // 每 3 秒心跳强制刷新（覆盖 200-reset 断流等无法感知的断线场景）
+    startHeartbeat();
+
+    // 页面隐藏时暂停心跳，回到页面立即刷新一次
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        stopHeartbeat();
+      } else {
+        refreshAll();
+        startHeartbeat();
+      }
+    });
+
+    console.log('[摄像头] 自动重连已启用（每' + (HEARTBEAT_INTERVAL / 1000) + '秒心跳刷新），覆盖 ' + imgs.length + ' 路画面');
   }
 
   if (document.readyState === 'loading') {
