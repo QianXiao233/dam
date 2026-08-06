@@ -31,13 +31,14 @@ app.use('/model', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Range, Content-Type');
   res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
-  
+
   // 支持断点续传
   res.header('Accept-Ranges', 'bytes');
 
-  // 禁用强缓存（每次回源验证，文件更新立即生效）
-  res.header('Cache-Control', 'no-cache');
-  
+  // 模型为大文件，启用强缓存（7 天，immutable）避免重复下载；
+  // 注意：此处的设置会被下方 express.static 的 setHeaders 覆盖，真正生效的在 setHeaders 中
+  res.header('Cache-Control', 'public, max-age=604800, immutable');
+
   next();
 });
 
@@ -51,6 +52,8 @@ app.use('/model', express.static(path.join(__dirname, 'public/model'), {
       res.setHeader('Content-Type', 'application/octet-stream');
       res.setHeader('Content-Disposition', 'inline; filename="model.glb"');
       res.setHeader('Accept-Ranges', 'bytes');
+      // 模型文件启用强缓存（7 天），避免每次刷新重复下载 427MB 大文件
+      res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
     }
   }
 }));
@@ -70,11 +73,11 @@ app.use(express.static('public/html', {
 }));
 // ======================== 启动 ========================
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅智御安澜平台已上线 端口号：${PORT}`);
-    console.log(`🔒 WAF 管理 API: http://localhost:${PORT}/api/waf/stats`);
-    console.log(`📋 WAF 管理页面: http://localhost:${PORT}/waf.html`);
-    console.log(`📦 模型文件路径: ${path.join(__dirname, 'public/model')}`);
-    console.log(`🌐 访问地址: http://localhost:${PORT}`);
+  console.log(`✅智御安澜平台已上线 端口号：${PORT}`);
+  console.log(`🔒 WAF 管理 API: http://localhost:${PORT}/api/waf/stats`);
+  console.log(`📋 WAF 管理页面: http://localhost:${PORT}/waf.html`);
+  console.log(`📦 模型文件路径: ${path.join(__dirname, 'public/model')}`);
+  console.log(`🌐 访问地址: http://localhost:${PORT}`);
 });
 
 // ======================== 错误处理 ========================
