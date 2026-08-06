@@ -75,7 +75,13 @@
   function init() {
     var imgs = document.querySelectorAll('img[id*="video_feed"]');
     for (var i = 0; i < imgs.length; i++) {
-      setupAutoReconnect(imgs[i]);
+      var img = imgs[i];
+      setupAutoReconnect(img);
+      // 处理初始化之前就已加载失败的画面：
+      // 若 error 事件发生在绑定之前（complete 但无图像内容），立即启动重连
+      if (img.complete && img.naturalWidth === 0 && img.id !== 'modalImage') {
+        img.dispatchEvent(new Event('error'));
+      }
     }
     console.log('[摄像头] 自动重连已启用，覆盖 ' + imgs.length + ' 路画面');
   }
