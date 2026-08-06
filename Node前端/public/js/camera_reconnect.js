@@ -18,6 +18,11 @@
   var imgs = [];
   var heartbeatTimer = null;
 
+  // 判断画面是否可见（隐藏的弹窗画面不参与心跳刷新，避免重复请求同一路摄像头）
+  function isVisible(img) {
+    return img.getClientRects().length > 0;
+  }
+
   function getBaseSrc(img) {
     // 缓存原始地址（去掉时间戳参数），刷新时只更新时间戳
     if (!img.dataset.baseSrc) {
@@ -38,7 +43,9 @@
 
   function refreshAll() {
     for (var i = 0; i < imgs.length; i++) {
-      refresh(imgs[i], false);
+      if (isVisible(imgs[i])) {
+        refresh(imgs[i], false);
+      }
     }
   }
 
@@ -59,17 +66,19 @@
       .filter(function (img) { return img.id !== 'modalImage'; });
 
     imgs.forEach(function (img) {
-      // error 事件：立即重连（不等心跳）
+      // error 事件：可见画面立即重连（不等心跳）；隐藏画面不重连，等可见后再处理
       img.addEventListener('error', function () {
-        refresh(img, true);
+        if (isVisible(img)) {
+          refresh(img, true);
+        }
       });
       // load 事件：加载成功，无需处理（心跳会保持新鲜）
       img.addEventListener('load', function () { /* 占位：保持连接语义清晰 */ });
     });
 
-    // 初始化前就已失败的画面（error 事件发生在绑定之前）：立即刷新
+    // 初始化前就已失败的画面（error 事件发生在绑定之前）：可见的立即刷新
     imgs.forEach(function (img) {
-      if (img.complete && img.naturalWidth === 0) {
+      if (img.complete && img.naturalWidth === 0 && isVisible(img)) {
         refresh(img, true);
       }
     });
