@@ -1,5 +1,12 @@
-document.getElementById('trapezoid-container').innerHTML =`
-                   
+// 水位预测/梯形断面图（仅在有 trapezoid-container 元素的页面生效，如 driver_b.html）
+// 修复：元素不存在时不报错（driver.html 等无该元素的页面也能正常加载）
+
+(function () {
+    'use strict';
+
+    var container = document.getElementById('trapezoid-container');
+    if (container) {
+        container.innerHTML = `
                     <hr class="trapezoid-line trapezoid-line-red">
                     <hr class="trapezoid-line trapezoid-line-orange">
                     <hr class="trapezoid-line trapezoid-line-yellow">
@@ -10,25 +17,26 @@ document.getElementById('trapezoid-container').innerHTML =`
                     <div class="trapezoid-content"></div> 
                     <div class="trapezoid"></div>
 `;
-
-window.updateTrapezoidHeight=function updateTrapezoidHeight() {
-    // 获取当前水位值（从 trapezoid-line-text 中获取）
-    const waterLevel= window.getData()[1][0];
-    console.log("实时水位数据："+waterLevel)
-    const waterLevelText = document.querySelector('.trapezoid-line-text').innerHTML = waterLevel;
-    const currentWaterLevel =  parseFloat(waterLevel);
-    waterLevelText.textContent = waterLevel;
-    
-    // 设置最大水位值（可以根据需要调整）
-    const maxWaterLevel = 200;
-    // 计算百分比
-    const percentage = Math.min((currentWaterLevel / maxWaterLevel) * 100, 100);
-    
-    // 获取 trapezoid-content 元素
-    const trapezoidContent = document.querySelector('.trapezoid-content');
-    if (trapezoidContent) {
-        // 设置高度为百分比
-        trapezoidContent.style.height = percentage + '%';
     }
-}
 
+    window.updateTrapezoidHeight = function updateTrapezoidHeight() {
+        // 元素不存在（非本页面功能）时安全跳过
+        var lineText = document.querySelector('.trapezoid-line-text');
+        var trapezoidContent = document.querySelector('.trapezoid-content');
+        if (!lineText || !trapezoidContent) return;
+
+        // 获取当前水位值
+        var waterLevel = window.getData()[1][0];
+        console.log("实时水位数据：" + waterLevel);
+        lineText.innerHTML = waterLevel;
+
+        var currentWaterLevel = parseFloat(waterLevel);
+        if (isNaN(currentWaterLevel)) return;
+
+        // 最大水位值（可以根据需要调整）
+        var maxWaterLevel = 200;
+        // 计算百分比
+        var percentage = Math.min((currentWaterLevel / maxWaterLevel) * 100, 100);
+        trapezoidContent.style.height = percentage + '%';
+    };
+})();
